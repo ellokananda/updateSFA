@@ -1,0 +1,222 @@
+{
+    "block_id": "Z01",
+    "block_name": "DASHBOARD",
+    "fields": [
+        {
+            "name": "header",
+            "label": "Header",
+            "columns": [
+                {
+                    "column": "entity",
+                    "label": "entity",
+                    "label_map": "entity",
+                    "seq": 1,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "id_branch",
+                    "label": "id_branch",
+                    "label_map": "id_branch",
+                    "seq": 1,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "branch_name",
+                    "label": "branch_name",
+                    "label_map": "branch_name",
+                    "seq": 2,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "mastersfa_salesman",
+                    "label": "mastersfa_salesman",
+                    "label_map": "mastersfa_salesman",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "mastersfa_cust",
+                    "label": "mastersfa_cust",
+                    "label_map": "mastersfa_cust",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "prodsfa",
+                    "label": "prodsfa",
+                    "label_map": "prodsfa",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "masterdist_sls",
+                    "label": "masterdist_sls",
+                    "label_map": "masterdist_sls",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "masterdist_cust",
+                    "label": "masterdist_cust",
+                    "label_map": "masterdist_cust",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "masterdist_prod",
+                    "label": "masterdist_prod",
+                    "label_map": "masterdist_prod",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "map_sales",
+                    "label": "map_sales",
+                    "label_map": "map_sales",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "map_cust",
+                    "label": "map_cust",
+                    "label_map": "map_cust",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "map_prod",
+                    "label": "map_prod",
+                    "label_map": "map_prod",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "scoring",
+                    "label": "scoring",
+                    "label_map": "scoring",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "status",
+                    "label": "status",
+                    "label_map": "status",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                }
+            ]
+        }
+    ]
+}
