@@ -1,0 +1,208 @@
+{
+    "block_id": "Z01",
+    "block_name": "IMPLEMENT",
+    "fields": [
+        {
+            "name": "header",
+            "label": "Header",
+            "columns": [
+                {
+                    "column": "entity",
+                    "label": "entity",
+                    "label_map": "entity",
+                    "seq": 1,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "id_branch",
+                    "label": "id_branch",
+                    "label_map": "id_branch",
+                    "seq": 1,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "branch_name",
+                    "label": "branch_name",
+                    "label_map": "branch_name",
+                    "seq": 2,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "rollout",
+                    "label": "rollout",
+                    "label_map": "rollout",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "golive",
+                    "label": "golive",
+                    "label_map": "golive",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "input_transaksi",
+                    "label": "input_transaksi",
+                    "label_map": "input_transaksi",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "first_trans",
+                    "label": "first_trans",
+                    "label_map": "first_trans",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "total_trans",
+                    "label": "total_trans",
+                    "label_map": "total_trans",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "useraktif",
+                    "label": "useraktif",
+                    "label_map": "useraktif",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "salesman_aktif",
+                    "label": "salesman_aktif",
+                    "label_map": "salesman_aktif",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "persen_sales",
+                    "label": "persen_sales",
+                    "label_map": "persen_sales",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "status",
+                    "label": "status",
+                    "label_map": "status",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "scoring",
+                    "label": "scoring",
+                    "label_map": "scoring",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                }
+                
+            ]
+        }
+    ]
+}
