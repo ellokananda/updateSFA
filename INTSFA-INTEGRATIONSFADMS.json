@@ -1,0 +1,132 @@
+{
+    "block_id": "Z01",
+    "block_name": "INTSFA",
+    "fields": [
+        {
+            "name": "header",
+            "label": "Header",
+            "columns": [
+                {
+                    "column": "entity",
+                    "label": "entity",
+                    "label_map": "entity",
+                    "seq": 1,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "id_branch",
+                    "label": "id_branch",
+                    "label_map": "id_branch",
+                    "seq": 1,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "branch_name",
+                    "label": "branch_name",
+                    "label_map": "branch_name",
+                    "seq": 2,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "activity",
+                    "label": "activity",
+                    "label_map": "activity",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "status",
+                    "label": "status",
+                    "label_map": "status",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "start_date",
+                    "label": "start_date",
+                    "label_map": "start_date",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "end_date",
+                    "label": "end_date",
+                    "label_map": "end_date",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "scoring",
+                    "label": "scoring",
+                    "label_map": "scoring",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                }
+            ]
+        }
+    ]
+}

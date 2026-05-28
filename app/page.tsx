@@ -1,47 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import React from "react";
-import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,} from "recharts";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import { BarChart3, X } from "lucide-react";
 
-export default function Home() {
-  //state untuk tab navigatornya
-  const [tab, setTab] = useState<"readiness" | "implementation">(
-    "readiness"
-  );
+type TabType = "readiness" | "implementation" | "intsfa";
 
-  //simpan data dari api
+export default function Home() {
+  const [tab, setTab] = useState<TabType>("readiness");
+  const [loading, setLoading] = useState(true);
+
   const [readinessData, setReadinessData] = useState<any[]>([]);
   const [implementationData, setImplementationData] = useState<any[]>([]);
+  const [intsfaData, setIntsfaData] = useState<any[]>([]);
 
-  const [loading, setLoading] = useState(true); //loading halaman
-  const [showChart, setShowChart] = useState(false); //chart readiness
-  const [showImplementationChart, setShowImplementationChart] = useState(false); //chart implementation
+  const [showChart, setShowChart] = useState(false);
 
-  //fetch api
+  // ================= FETCH API =================
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        const [readinessRes, implementationRes] =
+        const [readinessRes, implementationRes, intsfaRes] =
           await Promise.all([
-            fetch("/api/readiness"), //ngambil dari file route.ts folder readiness
-            fetch("/api/implementation"), //ngambil dari file route.ts folder implementation
+            fetch("/api/readiness"),
+            fetch("/api/implementation"),
+            fetch("/api/integrationsfa"),
           ]);
 
-        //mengubah respones api yg data[] itu jadi object js
         const readinessJson = await readinessRes.json();
         const implementationJson = await implementationRes.json();
+        const intsfaJson = await intsfaRes.json();
 
-        // console.log("READINESS:", readinessJson);
-        // console.log("IMPLEMENTATION:", implementationJson);
-        //menyimpan data yg berupa array itu ke state, jika data kosong tetap disimpan di array kosong
         setReadinessData(readinessJson.data || []);
         setImplementationData(implementationJson.data || []);
-      } catch (err) {
-        console.error(err);
+        setIntsfaData(intsfaJson.data || []);
+      } catch (error) {
+        console.error("ERROR FETCH API:", error);
       } finally {
         setLoading(false);
       }
@@ -50,656 +54,723 @@ export default function Home() {
     fetchData();
   }, []);
 
-  if (loading) {
-    return <div className="p-10 text-xl">Loading...</div>;
-  }
+  // ================= HELPERS =================
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case "NOT STARTED":
+      case "NOT READY":
+        return "bg-red-100 text-red-600";
 
-  // ================= GROUP READINESS =================
-  //mengelompokkan berdasarkan entity
-  const groupedData = Object.entries(
-    readinessData.reduce((acc: any, item: any) => {
-      const entity = item.entity || "-";
-      if (!acc[entity]) {
-        acc[entity] = [];
-      }
-      acc[entity].push(item);
-      return acc;
-    }, {})
+      case "READY FOR IMPLEMENTATION":
+      case "TRAINING":
+        return "bg-yellow-100 text-yellow-700";
+
+      default:
+        return "bg-green-100 text-green-700";
+    }
+  };
+
+  const groupByEntity = (data: any[]) => {
+    return Object.entries(
+      data.reduce((acc: any, item: any) => {
+        const entity = item.entity || "-";
+
+        if (!acc[entity]) {
+          acc[entity] = [];
+        }
+
+        acc[entity].push(item);
+
+        return acc;
+      }, {})
+    );
+  };
+
+  const createChartData = (grouped: any[]) => {
+    return grouped.map(([entity, items]: any) => {
+      const avg =
+        items.reduce(
+          (sum: number, item: any) =>
+            sum +
+            Number(
+              String(item.scoring).replace("%", "") || 0
+            ),
+          0
+        ) / items.length;
+
+      return {
+        entity,
+        scoring: Number(avg.toFixed(0)),
+      };
+    });
+  };
+
+  // ================= GROUPED DATA =================
+  const readinessGrouped = useMemo(
+    () => groupByEntity(readinessData),
+    [readinessData]
+  );
+
+  const implementationGrouped = useMemo(
+    () => groupByEntity(implementationData),
+    [implementationData]
+  );
+
+  const intsfaGrouped = useMemo(
+    () => groupByEntity(intsfaData),
+    [intsfaData]
   );
 
   // ================= CHART DATA =================
+  const readinessChart = createChartData(readinessGrouped);
+  const implementationChart =
+    createChartData(implementationGrouped);
+  const intsfaChart = createChartData(intsfaGrouped);
 
-  const chartData = groupedData.map(
-    ([entity, items]: any) => {
-      const avgScoring =
-        items.reduce(
-          (sum: number, x: any) =>
-            sum + Number(x.scoring || 0),
-          0
-        ) / items.length;
-      return {
-        entity,
-        scoring: Number(avgScoring.toFixed(0)),
-      };
-    }
-  );
-
-  // ================= STATUS BADGE =================
-
-  const renderStatus = (status: string) => {
-    if (status === "NOT STARTED") {
-      return "bg-red-100 text-red-600";
-    }
-
-    if (status === "READY FOR IMPLEMENTATION") {
-      return "bg-yellow-100 text-yellow-700";
-    }
-
-    if (status === "TRAINING") {
-      return "bg-yellow-100 text-yellow-700";
-    }
-
-    return "bg-green-100 text-green-700";
-  };
-
-  // ================= READINESS =================
-  //isi tampilan di tab readiness
-  const renderReadiness = () => (
-    <>
-      <div className="mb-3 flex items-center gap-3">
-        <p className="text-sm">
-          Total Distributor: {readinessData.length}
-        </p>
-
-        <button
-          onClick={() => setShowChart(true)}
-          className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-        >
-          <BarChart3 size={16} />
-          Grafik
-        </button>
+  // ================= LOADING =================
+  if (loading) {
+    return (
+      <div className="p-10 text-xl font-semibold">
+        Loading...
       </div>
-
-      <div className="overflow-auto max-h-[80vh] bg-white rounded-xl shadow">
-        <table className="w-max min-w-full text-sm text-gray-900 border-separate border-spacing-0">
-
-          {/* HEADER */}
-          <thead className="bg-gray-200">
-            <tr className="border-b text-gray-800">
-
-              <th className="p-3 sticky top-0 left-0 z-50 bg-gray-200 min-w-[90px]">
-                Entity
-              </th>
-
-              <th className="p-3 sticky top-0 left-[90px] z-50 bg-gray-200 min-w-[100px]">
-                ID
-              </th>
-
-              <th className="p-3 sticky top-0 left-[190px] z-50 bg-gray-200 min-w-[250px]">
-                Branch
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                SFA Sales
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                SFA Cust
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                SFA Prod
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                Dist Sales
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                Dist Cust
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                Dist Prod
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                Map Sales
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                Map Cust
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                Map Prod
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-                Scoring
-              </th>
-
-              <th className="p-3 sticky top-0 bg-gray-200 min-w-[200px]">
-                Status
-              </th>
-
-            </tr>
-          </thead>
-
-          {/* BODY */}
-          <tbody>
-            {groupedData.map(([entity, items]: any) => {
-              const avgScoring =
-                items.reduce(
-                  (sum: number, x: any) =>
-                    sum + Number(x.scoring || 0),
-                  0
-                ) / items.length;
-
-              return (
-                <React.Fragment key={entity}>
-
-                  {/* DETAIL ROW */}
-                  {items.map((item: any, idx: number) => (
-                    <tr
-                      key={`${entity}-${idx}`}
-                      className={`border-b ${
-                        Number(item.scoring) < 70
-                          ? "bg-red-50"
-                          : ""
-                      }`}
-                    >
-
-                      <td
-                        className={`p-3 sticky left-0 z-40 min-w-[90px] text-center ${
-                          Number(item.scoring) < 70
-                            ? "bg-red-50"
-                            : "bg-white"
-                        }`}
-                      >
-                        {item.entity}
-                      </td>
-
-                      <td
-                        className={`p-3 sticky left-[90px] z-40 min-w-[100px] text-center ${
-                          Number(item.scoring) < 70
-                            ? "bg-red-50"
-                            : "bg-white"
-                        }`}
-                      >
-                        {item.id_branch}
-                      </td>
-
-                      <td
-                        className={`p-3 sticky left-[190px] z-40 min-w-[250px] ${
-                          Number(item.scoring) < 70
-                            ? "bg-red-50"
-                            : "bg-white"
-                        }`}
-                      >
-                        {item.branch_name}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.mastersfa_salesman}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.mastersfa_cust}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.prodsfa}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.masterdist_sls}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.masterdist_cust}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.masterdist_prod}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.map_sales}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.map_cust}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.map_prod}
-                      </td>
-
-                      <td className="p-3 text-center font-bold">
-                        {Math.round(
-                          Number(item.scoring)
-                        )}
-                        %
-                      </td>
-
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${renderStatus(
-                            item.status
-                          )}`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {/* AVG ROW */}
-                  <tr className="bg-blue-100 font-bold border-b">
-                    <td
-                      colSpan={12}
-                      className="p-3 text-center"
-                    >
-                      RATA-RATA SCORING {entity}
-                    </td>
-
-                    <td className="p-3 text-center">
-                      {avgScoring.toFixed(0)}%
-                    </td>
-
-                    <td />
-                  </tr>
-
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
-
-  // ================= IMPLEMENTATION =================
-
-const implementationGrouped = Object.entries(
-  implementationData.reduce((acc: any, item: any) => {
-    const entity = item.entity || "-";
-
-    if (!acc[entity]) {
-      acc[entity] = [];
-    }
-
-    acc[entity].push(item);
-
-    return acc;
-  }, {})
-);
-
-const implementationChartData = implementationGrouped.map(
-  ([entity, items]: any) => {
-    const avgScoring =
-      items.reduce(
-        (sum: number, x: any) =>
-          sum + Number(x.scoring || 0),
-        0
-      ) / items.length;
-
-    return {
-      entity,
-      scoring: Number(avgScoring.toFixed(0)),
-    };
+    );
   }
-);
 
+  // ================= CHART MODAL =================
+  const ChartModal = ({
+    title,
+    data,
+    onClose,
+  }: {
+    title: string;
+    data: any[];
+    onClose: () => void;
+  }) => (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[999]">
+      <div className="bg-white w-[90%] max-w-5xl rounded-2xl p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-bold">{title}</h2>
 
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-100"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-const renderImplementation = () => (
-  <>
-    <div className="mb-3 flex items-center gap-3">
-      <p className="text-sm">
-        Total Distributor: {implementationData.length}
+        <div className="w-full h-[450px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+
+              <XAxis dataKey="entity" />
+
+              <YAxis domain={[0, 100]} />
+
+              <Tooltip />
+
+              <Bar
+                dataKey="scoring"
+                fill="#2563eb"
+                radius={[8, 8, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ================= TAB BUTTON =================
+  const TabButton = ({
+    value,
+    label,
+  }: {
+    value: TabType;
+    label: string;
+  }) => (
+    <button
+      onClick={() => setTab(value)}
+      className={`px-4 py-2 rounded-lg font-medium transition ${
+        tab === value
+          ? "bg-blue-600 text-white"
+          : "bg-white border"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  // ================= PAGE HEADER =================
+  const PageHeader = ({
+    total,
+    onShowChart,
+  }: {
+    total: number;
+    onShowChart: () => void;
+  }) => (
+    <div className="flex items-center gap-3 mb-4">
+      <p className="text-sm font-medium">
+        Total Distributor: {total}
       </p>
 
       <button
-        onClick={() => setShowImplementationChart(true)}
-        className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+        onClick={onShowChart}
+        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
       >
         <BarChart3 size={16} />
         Grafik
       </button>
     </div>
+  );
 
+  // ================= TABLE WRAPPER =================
+  const TableWrapper = ({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) => (
     <div className="overflow-auto max-h-[80vh] bg-white rounded-xl shadow">
-      <table className="w-max min-w-full text-sm text-gray-900 border-separate border-spacing-0">
-
-        {/* HEADER */}
-        <thead className="bg-gray-200">
-          <tr className="border-b text-gray-800">
-
-            <th className="p-3 sticky top-0 left-0 z-50 bg-gray-200 min-w-[90px]">
-              Entity
-            </th>
-
-            <th className="p-3 sticky top-0 left-[90px] z-50 bg-gray-200 min-w-[100px]">
-              ID
-            </th>
-
-            <th className="p-3 sticky top-0 left-[190px] z-50 bg-gray-200 min-w-[250px]">
-              Branch
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              Rollout
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              GoLive
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              Input Transaksi
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              Transaksi Pertama
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              Total Transaksi
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              Total Salesman
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              Salesman Aktif
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              % Salesman
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[200px]">
-              Status
-            </th>
-
-            <th className="p-3 sticky top-0 bg-gray-200 min-w-[120px]">
-              Scoring
-            </th>
-
-          </tr>
-        </thead>
-
-        {/* BODY */}
-        <tbody>
-          {implementationGrouped.map(
-            ([entity, items]: any) => {
-              const avgScoring =
-                items.reduce(
-                  (sum: number, x: any) =>
-                    sum + Number(x.scoring || 0),
-                  0
-                ) / items.length;
-
-              return (
-                <React.Fragment key={entity}>
-
-                  {items.map((item: any, idx: number) => (
-                    <tr
-                      key={`${entity}-${idx}`}
-                      className={`border-b ${
-                        item.status === "NOT STARTED"
-                          ? "bg-red-50"
-                          : ""
-                      }`}
-                    >
-
-                      <td
-                        className={`p-3 sticky left-0 z-40 min-w-[90px] text-center ${
-                          item.status === "NOT STARTED"
-                            ? "bg-red-50"
-                            : "bg-white"
-                        }`}
-                      >
-                        {item.entity}
-                      </td>
-
-                      <td
-                        className={`p-3 sticky left-[90px] z-40 min-w-[100px] text-center ${
-                          item.status === "NOT STARTED"
-                            ? "bg-red-50"
-                            : "bg-white"
-                        }`}
-                      >
-                        {item.id_branch}
-                      </td>
-
-                      <td
-                        className={`p-3 sticky left-[190px] z-40 min-w-[250px] ${
-                          item.status === "NOT STARTED"
-                            ? "bg-red-50"
-                            : "bg-white"
-                        }`}
-                      >
-                        {item.branch_name}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.rollout}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.golive}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.input_transaksi}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.first_trans}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.total_trans}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.useraktif}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.salesman_aktif}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {Number(item.persen_sales).toFixed(0)}%
-                      </td>
-
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${renderStatus(
-                            item.status
-                          )}`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-
-                      <td className="p-3 font-bold text-center">
-                        {Math.round(
-                          Number(item.scoring)
-                        )}
-                        %
-                      </td>
-
-                    </tr>
-                  ))}
-
-                  {/* AVG ROW */}
-                  <tr className="bg-blue-100 font-bold border-b">
-
-                    <td
-                      colSpan={12}
-                      className="p-3 text-center"
-                    >
-                      RATA-RATA SCORING {entity}
-                    </td>
-
-                    <td className="p-3 text-center">
-                      {avgScoring.toFixed(0)}%
-                    </td>
-
-                  </tr>
-
-                </React.Fragment>
-              );
-            }
-          )}
-        </tbody>
+      <table className="w-max min-w-full text-sm text-gray-900 border-separate border-spacing-0 relative">
+        {children}
       </table>
     </div>
-
-    {/* CHART */}
-    {showImplementationChart && (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[999]">
-
-        <div className="bg-white w-[90%] max-w-4xl rounded-2xl p-6 shadow-xl">
-
-          <div className="flex justify-between items-center mb-4">
-
-            <h2 className="text-xl font-bold">
-              Grafik Rata-rata Scoring Implementation
-            </h2>
-
-            <button
-              onClick={() =>
-                setShowImplementationChart(false)
-              }
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              <X size={20} />
-            </button>
-
-          </div>
-
-          <div className="w-full h-[400px]">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-              <BarChart data={implementationChartData}>
-
-                <CartesianGrid strokeDasharray="3 3" />
-
-                <XAxis dataKey="entity" />
-
-                <YAxis domain={[0, 100]} />
-
-                <Tooltip />
-
-                <Bar
-                  dataKey="scoring"
-                  fill="#06b6d4"
-                  radius={[8, 8, 0, 0]}
-                />
-
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-        </div>
-      </div>
-    )}
-  </>
-);
+  );
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen text-gray-900">
-
-      <h1 className="text-2xl font-bold mb-6 text-center">
+    <div className="min-h-screen bg-gray-100 p-6 text-gray-900">
+      {/* TITLE */}
+      <h1 className="text-3xl font-bold text-center mb-6">
         SFA DASHBOARD
       </h1>
 
       {/* TAB */}
-      <div className="flex justify-end gap-2 mb-4">
-  <button
-    onClick={() => setTab("readiness")}
-    className={`px-4 py-2 rounded-lg font-medium ${
-      tab === "readiness"
-        ? "bg-blue-600 text-white"
-        : "bg-white border"
-    }`}
-  >
-    Readiness
-  </button>
+      <div className="flex justify-end gap-2 mb-5">
+        <TabButton
+          value="readiness"
+          label="Readiness"
+        />
 
-  <button
-    onClick={() => setTab("implementation")}
-    className={`px-4 py-2 rounded-lg font-medium ${
-      tab === "implementation"
-        ? "bg-blue-600 text-white"
-        : "bg-white border"
-    }`}
-  >
-    Implementation
-  </button>
-</div>
+        <TabButton
+          value="implementation"
+          label="Implementation"
+        />
 
-      {/* CONTENT */}
-      {tab === "readiness"
-        ? renderReadiness()
-        : renderImplementation()}
+        <TabButton
+          value="intsfa"
+          label="Integration SFA"
+        />
+      </div>
 
-      {/* CHART MODAL */}
+      {/* ================= READINESS ================= */}
+      {tab === "readiness" && (
+        <>
+          <PageHeader
+            total={readinessData.length}
+            onShowChart={() => setShowChart(true)}
+          />
+
+          <TableWrapper>
+            <thead className="bg-gray-200 sticky top-0 z-30">
+              <tr>
+                {[
+                  "Entity",
+                  "ID",
+                  "Branch",
+                  "SFA Sales",
+                  "SFA Cust",
+                  "SFA Prod",
+                  "Dist Sales",
+                  "Dist Cust",
+                  "Dist Prod",
+                  "Map Sales",
+                  "Map Cust",
+                  "Map Prod",
+                  "Scoring",
+                  "Status",
+                ].map((header, index) => (
+                  <th
+                    key={header}
+                    className={`
+                      p-3 border-b font-semibold whitespace-nowrap bg-gray-200
+                      ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
+                      ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
+                      ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+                    `}
+                  >
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {readinessGrouped.map(
+                ([entity, items]: any) => {
+                  const avg =
+                    items.reduce(
+                      (sum: number, item: any) =>
+                        sum +
+                        Number(item.scoring || 0),
+                      0
+                    ) / items.length;
+
+                  return (
+                    <React.Fragment key={entity}>
+                      {items.map(
+                        (item: any, index: number) => (
+                          <tr
+                            key={index}
+                            className={`border-b ${
+                              Number(item.scoring) < 70
+                                ? "bg-red-50"
+                                : ""
+                            }`}
+                          >
+                            <td
+                              className={`p-3 text-center sticky left-0 z-20 min-w-[120px] ${
+                                Number(item.scoring) < 70
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.entity}
+                            </td>
+
+                            <td
+                              className={`p-3 text-center sticky left-[120px] z-20 min-w-[100px] ${
+                                Number(item.scoring) < 70
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.id_branch}
+                            </td>
+
+                            <td
+                              className={`p-3 sticky left-[220px] z-20 min-w-[250px] ${
+                                Number(item.scoring) < 70
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.branch_name}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.mastersfa_salesman}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.mastersfa_cust}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.prodsfa}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.masterdist_sls}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.masterdist_cust}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.masterdist_prod}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.map_sales}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.map_cust}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.map_prod}
+                            </td>
+
+                            <td className="p-3 text-center font-bold">
+                              {Math.round(
+                                Number(item.scoring)
+                              )}
+                              %
+                            </td>
+
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${getStatusClass(
+                                  item.status
+                                )}`}
+                              >
+                                {item.status}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      )}
+
+                      <tr className="bg-blue-100 font-bold">
+                        <td
+                          colSpan={12}
+                          className="p-3 text-center"
+                        >
+                          RATA-RATA SCORING {entity}
+                        </td>
+
+                        <td className="p-3 text-center">
+                          {avg.toFixed(0)}%
+                        </td>
+
+                        <td />
+                      </tr>
+                    </React.Fragment>
+                  );
+                }
+              )}
+            </tbody>
+          </TableWrapper>
+        </>
+      )}
+
+      {/* ================= IMPLEMENTATION ================= */}
+      {tab === "implementation" && (
+        <>
+          <PageHeader
+            total={implementationData.length}
+            onShowChart={() => setShowChart(true)}
+          />
+
+          <TableWrapper>
+            <thead className="bg-gray-200 sticky top-0 z-30">
+              <tr>
+                {[
+                  "Entity",
+                  "ID",
+                  "Branch",
+                  "Rollout",
+                  "GoLive",
+                  "Input Transaksi",
+                  "Transaksi Pertama",
+                  "Total Transaksi",
+                  "Total Salesman",
+                  "Salesman Aktif",
+                  "% Salesman",
+                  "Status",
+                  "Scoring",
+                ].map((header, index) => (
+                  <th
+                    key={header}
+                    className={`
+                      p-3 border-b whitespace-nowrap bg-gray-200
+                      ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
+                      ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
+                      ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+                    `}
+                  >
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {implementationGrouped.map(
+                ([entity, items]: any) => {
+                  const avg =
+                    items.reduce(
+                      (sum: number, item: any) =>
+                        sum +
+                        Number(item.scoring || 0),
+                      0
+                    ) / items.length;
+
+                  return (
+                    <React.Fragment key={entity}>
+                      {items.map(
+                        (item: any, index: number) => (
+                          <tr
+                            key={index}
+                            className={`border-b ${
+                              item.status ===
+                              "NOT STARTED"
+                                ? "bg-red-50"
+                                : ""
+                            }`}
+                          >
+                            <td
+                              className={`p-3 text-center sticky left-0 z-20 min-w-[120px] ${
+                                item.status === "NOT STARTED"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.entity}
+                            </td>
+
+                            <td
+                              className={`p-3 text-center sticky left-[120px] z-20 min-w-[100px] ${
+                                item.status === "NOT STARTED"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.id_branch}
+                            </td>
+
+                            <td
+                              className={`p-3 sticky left-[220px] z-20 min-w-[250px] ${
+                                item.status === "NOT STARTED"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.branch_name}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.rollout}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.golive}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.input_transaksi}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.first_trans}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.total_trans}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.useraktif}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.salesman_aktif}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {Number(
+                                item.persen_sales
+                              ).toFixed(0)}
+                              %
+                            </td>
+
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${getStatusClass(
+                                  item.status
+                                )}`}
+                              >
+                                {item.status}
+                              </span>
+                            </td>
+
+                            <td className="p-3 text-center font-bold">
+                              {Math.round(
+                                Number(item.scoring)
+                              )}
+                              %
+                            </td>
+                          </tr>
+                        )
+                      )}
+
+                      <tr className="bg-blue-100 font-bold">
+                        <td
+                          colSpan={12}
+                          className="p-3 text-center"
+                        >
+                          RATA-RATA SCORING {entity}
+                        </td>
+
+                        <td className="p-3 text-center">
+                          {avg.toFixed(0)}%
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                }
+              )}
+            </tbody>
+          </TableWrapper>
+        </>
+      )}
+
+      {/* ================= INTEGRATION SFA ================= */}
+      {tab === "intsfa" && (
+        <>
+          <PageHeader
+            total={intsfaData.length}
+            onShowChart={() => setShowChart(true)}
+          />
+
+          <TableWrapper>
+            <thead className="bg-gray-200 sticky top-0 z-30">
+              <tr>
+                {[
+                  "Entity",
+                  "ID",
+                  "Branch",
+                  "Activity",
+                  "Status",
+                  "Start Date",
+                  "End Date",
+                  "Scoring",
+                ].map((header, index) => (
+                  <th
+                    key={header}
+                    className={`
+                      p-3 border-b whitespace-nowrap bg-gray-200
+                      ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
+                      ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
+                      ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+                    `}
+                  >
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {intsfaGrouped.map(
+                ([entity, items]: any) => {
+                  const avg =
+                    items.reduce(
+                      (sum: number, item: any) =>
+                        sum +
+                        Number(
+                          String(
+                            item.scoring
+                          ).replace("%", "")
+                        ),
+                      0
+                    ) / items.length;
+
+                  return (
+                    <React.Fragment key={entity}>
+                      {items.map(
+                        (item: any, index: number) => (
+                          <tr
+                            key={index}
+                            className={`border-b ${
+                              item.status ===
+                              "NOT READY"
+                                ? "bg-red-50"
+                                : ""
+                            }`}
+                          >
+                            <td
+                              className={`p-3 text-center sticky left-0 z-20 min-w-[120px] ${
+                                item.status === "NOT READY"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.entity}
+                            </td>
+
+                            <td
+                              className={`p-3 text-center sticky left-[120px] z-20 min-w-[100px] ${
+                                item.status === "NOT READY"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.id_branch}
+                            </td>
+
+                            <td
+                              className={`p-3 sticky left-[220px] z-20 min-w-[250px] ${
+                                item.status === "NOT READY"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.branch_name}
+                            </td>
+
+                            <td className="p-3">
+                              {item.activity}
+                            </td>
+
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${getStatusClass(
+                                  item.status
+                                )}`}
+                              >
+                                {item.status}
+                              </span>
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.start_date}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {item.end_date}
+                            </td>
+
+                            <td className="p-3 text-center font-bold">
+                              {item.scoring}
+                            </td>
+                          </tr>
+                        )
+                      )}
+
+                      <tr className="bg-blue-100 font-bold">
+                        <td
+                          colSpan={7}
+                          className="p-3 text-center"
+                        >
+                          RATA-RATA SCORING {entity}
+                        </td>
+
+                        <td className="p-3 text-center">
+                          {avg.toFixed(0)}%
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                }
+              )}
+            </tbody>
+          </TableWrapper>
+        </>
+      )}
+
+      {/* ================= MODAL ================= */}
       {showChart && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[999]">
-          <div className="bg-white w-[90%] max-w-4xl rounded-2xl p-6 shadow-xl">
-
-            <div className="flex justify-between items-center mb-4">
-
-              <h2 className="text-xl font-bold">
-                Grafik Rata-rata Scoring per Entity
-              </h2>
-
-              <button
-                onClick={() => setShowChart(false)}
-                className="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <X size={20} />
-              </button>
-
-            </div>
-
-            <div className="w-full h-[400px]">
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <BarChart data={chartData}>
-
-                  <CartesianGrid strokeDasharray="3 3" />
-
-                  <XAxis dataKey="entity" />
-
-                  <YAxis domain={[0, 100]} />
-
-                  <Tooltip />
-
-                  <Bar
-                    dataKey="scoring"
-                    fill="#06b6d4"
-                    radius={[8, 8, 0, 0]}
-                  />
-
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-          </div>
-        </div>
+        <ChartModal
+          title={`Grafik ${
+            tab === "readiness"
+              ? "Readiness"
+              : tab === "implementation"
+              ? "Implementation"
+              : "Integration SFA"
+          }`}
+          data={
+            tab === "readiness"
+              ? readinessChart
+              : tab === "implementation"
+              ? implementationChart
+              : intsfaChart
+          }
+          onClose={() => setShowChart(false)}
+        />
       )}
     </div>
   );
