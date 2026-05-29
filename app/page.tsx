@@ -1,18 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-import { BarChart3, X } from "lucide-react";
+import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,} from "recharts";
+import { BarChart3, X, Check, XCircle } from "lucide-react";
 
-type TabType = "readiness" | "implementation" | "intsfa";
+type TabType = "readiness" | "implementation" | "intsfa" | "intdms";
 
 export default function Home() {
   const [tab, setTab] = useState<TabType>("readiness");
@@ -21,6 +13,7 @@ export default function Home() {
   const [readinessData, setReadinessData] = useState<any[]>([]);
   const [implementationData, setImplementationData] = useState<any[]>([]);
   const [intsfaData, setIntsfaData] = useState<any[]>([]);
+  const [intdmsData, setIntdmsData] = useState<any[]>([]);
 
   const [showChart, setShowChart] = useState(false);
 
@@ -30,20 +23,23 @@ export default function Home() {
       try {
         setLoading(true);
 
-        const [readinessRes, implementationRes, intsfaRes] =
+        const [readinessRes, implementationRes, intsfaRes, intdmsRes] =
           await Promise.all([
             fetch("/api/readiness"),
             fetch("/api/implementation"),
             fetch("/api/integrationsfa"),
+            fetch("/api/integrationdms"),
           ]);
 
         const readinessJson = await readinessRes.json();
         const implementationJson = await implementationRes.json();
         const intsfaJson = await intsfaRes.json();
+        const intdmsJson = await intdmsRes.json();
 
         setReadinessData(readinessJson.data || []);
         setImplementationData(implementationJson.data || []);
         setIntsfaData(intsfaJson.data || []);
+        setIntdmsData(intdmsJson.data || []);
       } catch (error) {
         console.error("ERROR FETCH API:", error);
       } finally {
@@ -63,12 +59,33 @@ export default function Home() {
 
       case "READY FOR IMPLEMENTATION":
       case "TRAINING":
+      case "PROGRESS":
         return "bg-yellow-100 text-yellow-700";
+
+      case "DONE" : return "bg-blue-100 text-blue-700";
 
       default:
         return "bg-green-100 text-green-700";
     }
   };
+
+  const renderIcon = (value: number) => {
+  return Number(value) === 1 ? (
+    <div className="flex justify-center">
+      <Check
+        size={20}
+        className="text-green-600 font-bold"
+      />
+    </div>
+  ) : (
+    <div className="flex justify-center">
+      <XCircle
+        size={20}
+        className="text-red-600"
+      />
+    </div>
+  );
+};
 
   const groupByEntity = (data: any[]) => {
     return Object.entries(
@@ -121,11 +138,16 @@ export default function Home() {
     [intsfaData]
   );
 
+  const intdmsGrouped = useMemo(
+    () => groupByEntity(intdmsData),
+    [intdmsData]
+  );
+
   // ================= CHART DATA =================
   const readinessChart = createChartData(readinessGrouped);
-  const implementationChart =
-    createChartData(implementationGrouped);
+  const implementationChart = createChartData(implementationGrouped);
   const intsfaChart = createChartData(intsfaGrouped);
+  const intdmsChart = createChartData(intdmsGrouped);
 
   // ================= LOADING =================
   if (loading) {
@@ -260,6 +282,11 @@ export default function Home() {
         <TabButton
           value="intsfa"
           label="Integration SFA"
+        />
+
+        <TabButton
+          value="intdms"
+          label="Integration DMS"
         />
       </div>
 
@@ -401,7 +428,7 @@ export default function Home() {
                               %
                             </td>
 
-                            <td className="p-3">
+                            <td className="p-3 text-center">
                               <span
                                 className={`px-2 py-1 text-xs rounded-full ${getStatusClass(
                                   item.status
@@ -567,7 +594,7 @@ export default function Home() {
                               %
                             </td>
 
-                            <td className="p-3">
+                            <td className="p-3 text-center">
                               <span
                                 className={`px-2 py-1 text-xs rounded-full ${getStatusClass(
                                   item.status
@@ -706,7 +733,7 @@ export default function Home() {
                               {item.activity}
                             </td>
 
-                            <td className="p-3">
+                            <td className="p-3 text-center">
                               <span
                                 className={`px-2 py-1 text-xs rounded-full ${getStatusClass(
                                   item.status
@@ -752,6 +779,164 @@ export default function Home() {
         </>
       )}
 
+            {/* ================= INTEGRATION DMS ================= */}
+      {tab === "intdms" && (
+        <>
+          <PageHeader
+            total={intdmsData.length}
+            onShowChart={() => setShowChart(true)}
+          />
+
+          <TableWrapper>
+            <thead className="bg-gray-200 sticky top-0 z-30">
+              <tr>
+                {[
+                  "Entity",
+                  "ID",
+                  "Branch",
+                  "Config TO",
+                  "Config Stok",
+                  "Config Invoice",
+                  "Data Stok",
+                  "Data Invoice",
+                  "Scoring",
+                  "Status"
+                ].map((header, index) => (
+                  <th
+                    key={header}
+                    className={`
+                      p-3 border-b whitespace-nowrap bg-gray-200
+                      ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
+                      ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
+                      ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+                    `}
+                  >
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {intdmsGrouped.map(
+                ([entity, items]: any) => {
+                  const avg =
+                    items.reduce(
+                      (sum: number, item: any) =>
+                        sum +
+                        Number(
+                          String(
+                            item.scoring
+                          ).replace("%", "")
+                        ),
+                      0
+                    ) / items.length;
+
+                  return (
+                    <React.Fragment key={entity}>
+                      {items.map(
+                        (item: any, index: number) => (
+                          <tr
+                            key={index}
+                            className={`border-b ${
+                              item.status ===
+                              "NOT READY"
+                                ? "bg-red-50"
+                                : ""
+                            }`}
+                          >
+                            <td
+                              className={`p-3 text-center sticky left-0 z-20 min-w-[120px] ${
+                                item.status === "NOT READY"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.entity}
+                            </td>
+
+                            <td
+                              className={`p-3 text-center sticky left-[120px] z-20 min-w-[100px] ${
+                                item.status === "NOT READY"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.id_branch}
+                            </td>
+
+                            <td
+                              className={`p-3 sticky left-[220px] z-20 min-w-[250px] ${
+                                item.status === "NOT READY"
+                                  ? "bg-red-50"
+                                  : "bg-white"
+                              }`}
+                            >
+                              {item.branch_name}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {renderIcon(item.configto)}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {renderIcon(item.configstk)}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {renderIcon(item.configinv)}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {renderIcon(item.datastk)}
+                            </td>
+
+                            <td className="p-3 text-center">
+                              {renderIcon(item.datainv)}
+                            </td>
+
+                          
+                            <td className="p-3 text-center font-bold">
+                              {Math.round(
+                                Number(item.scoring)
+                              )}
+                              %
+                            </td>
+
+                            <td className="p-3 text-center">
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${getStatusClass(
+                                  item.status
+                                )}`}
+                              >
+                                {item.status}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      )}
+
+                      <tr className="bg-blue-100 font-bold">
+                        <td
+                          colSpan={9}
+                          className="p-3 text-center"
+                        >
+                          RATA-RATA SCORING {entity}
+                        </td>
+
+                        <td className="p-3 text-center">
+                          {avg.toFixed(0)}%
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                }
+              )}
+            </tbody>
+          </TableWrapper>
+        </>
+      )}
+
       {/* ================= MODAL ================= */}
       {showChart && (
         <ChartModal
@@ -760,14 +945,18 @@ export default function Home() {
               ? "Readiness"
               : tab === "implementation"
               ? "Implementation"
-              : "Integration SFA"
+              : tab === "intsfa"
+              ? "Integration SFA"
+              : "Integration DMS"
           }`}
           data={
             tab === "readiness"
               ? readinessChart
               : tab === "implementation"
               ? implementationChart
-              : intsfaChart
+              : tab === "intsfa"
+              ? intsfaChart
+              : intdmsChart
           }
           onClose={() => setShowChart(false)}
         />
