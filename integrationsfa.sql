@@ -27,6 +27,14 @@ ISNULL(
     ELSE '100%'
 	END AS scoring
 FROM m_scabang ms
-LEFT JOIN (SELECT branch,CAST(created_at AS DATE) AS start_date FROM interface_exptrx_configs) c ON ms.kodescabang = c.branch
+LEFT JOIN (
+    SELECT
+        branch,
+        block_id,
+        CAST(created_at AS DATE) AS start_date
+    FROM interface_exptrx_configs
+    WHERE block_id IN ('Z01')
+) c
+    ON ms.kodescabang = c.branch
 where ms.kodecabang <> 'KOKOLA-MNN' and ms.kodescabang <> '220' and ms.flag_aktif != 'N' 
 order by ms.kodecabang,ms.kodescabang,c.start_date;

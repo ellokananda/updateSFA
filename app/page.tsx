@@ -1,7 +1,19 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,} from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 import { BarChart3, X, Check, XCircle } from "lucide-react";
 
 type TabType = "readiness" | "implementation" | "intsfa" | "intdms";
@@ -10,12 +22,22 @@ export default function Home() {
   const [tab, setTab] = useState<TabType>("readiness");
   const [loading, setLoading] = useState(true);
 
+  const [search, setSearch] = useState("");
+  const [sortField, setSortField] = useState("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const [statusFilter, setStatusFilter] = useState("");
+  const [entityFilter, setEntityFilter] = useState("");
+
   const [readinessData, setReadinessData] = useState<any[]>([]);
   const [implementationData, setImplementationData] = useState<any[]>([]);
   const [intsfaData, setIntsfaData] = useState<any[]>([]);
   const [intdmsData, setIntdmsData] = useState<any[]>([]);
 
-  const [showChart, setShowChart] = useState(false);
+  const [showStatusChart, setShowStatusChart] = useState(false);
+  const [showEntityChart, setShowEntityChart] = useState(false);
+
+  
 
   // ================= FETCH API =================
   useEffect(() => {
@@ -69,6 +91,8 @@ export default function Home() {
     }
   };
 
+  
+
   const renderIcon = (value: number) => {
   return Number(value) === 1 ? (
     <div className="flex justify-center">
@@ -85,6 +109,72 @@ export default function Home() {
       />
     </div>
   );
+};
+
+const filterAndSortData = (data: any[]) => {
+  let result = [...data];
+
+  // Search
+if (search) {
+  const keyword = search.toLowerCase();
+
+  result = result.filter((item) =>
+    Object.values(item).some((value) =>
+      String(value)
+        .toLowerCase()
+        .includes(keyword)
+    )
+  );
+}
+
+  // Filter Entity
+  if (entityFilter) {
+    result = result.filter(
+      (item) => item.entity === entityFilter
+    );
+  }
+
+  // Filter Status
+  if (statusFilter) {
+    result = result.filter(
+      (item) => item.status === statusFilter
+    );
+  }
+
+  // Sort
+  if (sortField) {
+    result.sort((a, b) => {
+      const valA = a[sortField];
+      const valB = b[sortField];
+
+      if (!isNaN(valA) && !isNaN(valB)) {
+        return sortDirection === "asc"
+          ? Number(valA) - Number(valB)
+          : Number(valB) - Number(valA);
+      }
+
+      return sortDirection === "asc"
+        ? String(valA).localeCompare(String(valB))
+        : String(valB).localeCompare(String(valA));
+    });
+  }
+
+  return result;
+};
+
+const handleSort = (field: string) => {
+  if (sortField !== field) {
+    // klik pertama
+    setSortField(field);
+    setSortDirection("asc");
+  } else if (sortDirection === "asc") {
+    // klik kedua
+    setSortDirection("desc");
+  } else {
+    // klik ketiga = reset
+    setSortField("");
+    setSortDirection("asc");
+  }
 };
 
   const groupByEntity = (data: any[]) => {
@@ -123,31 +213,109 @@ export default function Home() {
   };
 
   // ================= GROUPED DATA =================
-  const readinessGrouped = useMemo(
-    () => groupByEntity(readinessData),
-    [readinessData]
-  );
+const readinessGrouped = useMemo(() => {
+  const data = filterAndSortData(readinessData);
 
-  const implementationGrouped = useMemo(
-    () => groupByEntity(implementationData),
-    [implementationData]
-  );
+  return sortField === "status"
+    ? [["ALL", data]]
+    : groupByEntity(data);
+}, [
+  readinessData,
+  search,
+  statusFilter,
+  entityFilter,
+  sortField,
+  sortDirection,
+]);
 
-  const intsfaGrouped = useMemo(
-    () => groupByEntity(intsfaData),
-    [intsfaData]
-  );
+const implementationGrouped = useMemo(() => {
+  const data = filterAndSortData(implementationData);
 
-  const intdmsGrouped = useMemo(
-    () => groupByEntity(intdmsData),
-    [intdmsData]
-  );
+  return sortField === "status"
+    ? [["ALL", data]]
+    : groupByEntity(data);
+}, [
+  implementationData,
+  search,
+  statusFilter,
+  entityFilter,
+  sortField,
+  sortDirection,
+]);
+
+const intsfaGrouped = useMemo(() => {
+  const data = filterAndSortData(intsfaData);
+
+  return sortField === "status"
+    ? [["ALL", data]]
+    : groupByEntity(data);
+}, [
+  intsfaData,
+  search,
+  statusFilter,
+  entityFilter,
+  sortField,
+  sortDirection,
+]);
+
+const intdmsGrouped = useMemo(() => {
+  const data = filterAndSortData(intdmsData);
+
+  return sortField === "status"
+    ? [["ALL", data]]
+    : groupByEntity(data);
+}, [
+  intdmsData,
+  search,
+  statusFilter,
+  entityFilter,
+  sortField,
+  sortDirection,
+]);
+
+
 
   // ================= CHART DATA =================
   const readinessChart = createChartData(readinessGrouped);
   const implementationChart = createChartData(implementationGrouped);
   const intsfaChart = createChartData(intsfaGrouped);
   const intdmsChart = createChartData(intdmsGrouped);
+  
+
+  const currentData =
+  tab === "readiness"
+    ? readinessData
+    : tab === "implementation"
+    ? implementationData
+    : tab === "intsfa"
+    ? intsfaData
+    : intdmsData;
+
+    const totalDistributor = currentData.length;
+    const filteredCurrentData = filterAndSortData(currentData);
+
+const countData = filteredCurrentData.length;
+
+const statusChartData = Object.entries(
+  currentData.reduce((acc: any, item: any) => {
+    const status = item.status || "Unknown";
+
+    acc[status] = (acc[status] || 0) + 1;
+
+    return acc;
+  }, {})
+).map(([status, value]) => ({
+  name: status,
+  value,
+}));
+
+const PIE_COLORS = [
+  "#22c55e",
+  "#facc15",
+  "#ef4444",
+  "#3b82f6",
+  "#8b5cf6",
+];
 
   // ================= LOADING =================
   if (loading) {
@@ -224,28 +392,52 @@ export default function Home() {
     </button>
   );
 
-  // ================= PAGE HEADER =================
-  const PageHeader = ({
-    total,
-    onShowChart,
-  }: {
-    total: number;
-    onShowChart: () => void;
-  }) => (
-    <div className="flex items-center gap-3 mb-4">
-      <p className="text-sm font-medium">
-        Total Distributor: {total}
-      </p>
+  //toolbar search dan filter
 
-      <button
-        onClick={onShowChart}
-        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-      >
-        <BarChart3 size={16} />
-        Grafik
-      </button>
+  <div className="flex flex-wrap gap-3 mb-5">
+
+  <input
+    type="text"
+    placeholder="Search branch / entity / id..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    className="border rounded-lg px-3 py-2 w-72"
+  />
+</div>
+
+  // ================= PAGE HEADER =================
+const PageHeader = ({
+  total,
+  count,
+}: {
+  total: number;
+  count: number;
+}) => (
+  <div className="flex items-center gap-3 mb-4">
+    <p className="text-sm font-medium">
+      Total Distributor: {total}
+    </p>
+
+    <button
+      onClick={() => setShowStatusChart(true)}
+      className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+    >
+      📊 Status Chart
+    </button>
+
+    <button
+      onClick={() => setShowEntityChart(true)}
+      className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+    >
+      📈 Entity Scoring
+    </button>
+
+    {/* Count Data di kanan */}
+    <div className="ml-auto px-3 py-2 bg-gray-100 rounded-lg font-medium">
+      Count Data: {count}
     </div>
-  );
+  </div>
+);
 
   // ================= TABLE WRAPPER =================
   const TableWrapper = ({
@@ -274,6 +466,8 @@ export default function Home() {
           label="Readiness"
         />
 
+
+
         <TabButton
           value="implementation"
           label="Implementation"
@@ -281,54 +475,80 @@ export default function Home() {
 
         <TabButton
           value="intsfa"
-          label="Integration SFA"
+          label="SFA Outbond"
         />
 
         <TabButton
           value="intdms"
-          label="Integration DMS"
+          label="SFA Inbound"
         />
       </div>
-
+        {/* SEARCH & FILTER */}
+<div className="flex flex-wrap gap-3 mb-5">
+  <input
+    type="text"
+    placeholder="Search branch / entity / id..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    className="border rounded-lg px-3 py-2 w-72 bg-white"
+  />
+</div>
       {/* ================= READINESS ================= */}
       {tab === "readiness" && (
         <>
           <PageHeader
-            total={readinessData.length}
-            onShowChart={() => setShowChart(true)}
-          />
+  total={readinessData.length}
+  count={filterAndSortData(readinessData).length}
+/>
 
           <TableWrapper>
             <thead className="bg-gray-200 sticky top-0 z-30">
               <tr>
                 {[
-                  "Entity",
-                  "ID",
-                  "Branch",
-                  "SFA Sales",
-                  "SFA Cust",
-                  "SFA Prod",
-                  "Dist Sales",
-                  "Dist Cust",
-                  "Dist Prod",
-                  "Map Sales",
-                  "Map Cust",
-                  "Map Prod",
-                  "Scoring",
-                  "Status",
-                ].map((header, index) => (
-                  <th
-                    key={header}
-                    className={`
-                      p-3 border-b font-semibold whitespace-nowrap bg-gray-200
-                      ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
-                      ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
-                      ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
-                    `}
-                  >
-                    {header}
-                  </th>
-                ))}
+  "Entity",
+  "ID",
+  "Branch",
+  "SFA Sales",
+  "SFA Cust",
+  "SFA Prod",
+  "Rute",
+  "Dist Sales",
+  "Dist Cust",
+  "Dist Prod",
+  "Map Sales",
+  "Map Cust",
+  "Map Prod",
+  "Scoring",
+  "Status",
+].map((header, index) => (
+<th
+  key={header}
+  onClick={() => {
+    if (header === "Status") {
+      handleSort("status");
+    }
+  }}
+  className={`
+    p-3 border-b font-semibold whitespace-nowrap bg-gray-200
+    ${
+      header === "Status"
+        ? "cursor-pointer hover:bg-gray-300"
+        : ""
+    }
+    ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
+    ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
+    ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+  `}
+>
+  {header}
+  {header === "Status" &&
+  (sortField === "status"
+    ? sortDirection === "asc"
+      ? " ↑"
+      : " ↓"
+    : " ↕")}
+</th>
+))}
               </tr>
             </thead>
 
@@ -398,6 +618,10 @@ export default function Home() {
                             </td>
 
                             <td className="p-3 text-center">
+                              {item.rute}
+                            </td>
+
+                            <td className="p-3 text-center">
                               {item.masterdist_sls}
                             </td>
 
@@ -443,7 +667,7 @@ export default function Home() {
 
                       <tr className="bg-blue-100 font-bold">
                         <td
-                          colSpan={12}
+                          colSpan={13}
                           className="p-3 text-center"
                         >
                           RATA-RATA SCORING {entity}
@@ -468,9 +692,9 @@ export default function Home() {
       {tab === "implementation" && (
         <>
           <PageHeader
-            total={implementationData.length}
-            onShowChart={() => setShowChart(true)}
-          />
+  total={implementationData.length}
+  count={filterAndSortData(implementationData).length}
+/>
 
           <TableWrapper>
             <thead className="bg-gray-200 sticky top-0 z-30">
@@ -490,17 +714,33 @@ export default function Home() {
                   "Status",
                   "Scoring",
                 ].map((header, index) => (
-                  <th
-                    key={header}
-                    className={`
-                      p-3 border-b whitespace-nowrap bg-gray-200
-                      ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
-                      ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
-                      ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
-                    `}
-                  >
-                    {header}
-                  </th>
+<th
+  key={header}
+  onClick={() => {
+    if (header === "Status") {
+      handleSort("status");
+    }
+  }}
+  className={`
+    p-3 border-b font-semibold whitespace-nowrap bg-gray-200
+    ${
+      header === "Status"
+        ? "cursor-pointer hover:bg-gray-300"
+        : ""
+    }
+    ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
+    ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
+    ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+  `}
+>
+  {header}
+  {header === "Status" &&
+  (sortField === "status"
+    ? sortDirection === "asc"
+      ? " ↑"
+      : " ↓"
+    : " ↕")}
+</th>
                 ))}
               </tr>
             </thead>
@@ -639,9 +879,9 @@ export default function Home() {
       {tab === "intsfa" && (
         <>
           <PageHeader
-            total={intsfaData.length}
-            onShowChart={() => setShowChart(true)}
-          />
+  total={intsfaData.length}
+  count={filterAndSortData(intsfaData).length}
+/>
 
           <TableWrapper>
             <thead className="bg-gray-200 sticky top-0 z-30">
@@ -657,16 +897,32 @@ export default function Home() {
                   "Scoring",
                 ].map((header, index) => (
                   <th
-                    key={header}
-                    className={`
-                      p-3 border-b whitespace-nowrap bg-gray-200
-                      ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
-                      ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
-                      ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
-                    `}
-                  >
-                    {header}
-                  </th>
+  key={header}
+  onClick={() => {
+    if (header === "Status") {
+      handleSort("status");
+    }
+  }}
+  className={`
+    p-3 border-b font-semibold whitespace-nowrap bg-gray-200
+    ${
+      header === "Status"
+        ? "cursor-pointer hover:bg-gray-300"
+        : ""
+    }
+    ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
+    ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
+    ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+  `}
+>
+  {header}
+  {header === "Status" &&
+  (sortField === "status"
+    ? sortDirection === "asc"
+      ? " ↑"
+      : " ↓"
+    : " ↕")}
+</th>
                 ))}
               </tr>
             </thead>
@@ -783,10 +1039,9 @@ export default function Home() {
       {tab === "intdms" && (
         <>
           <PageHeader
-            total={intdmsData.length}
-            onShowChart={() => setShowChart(true)}
-          />
-
+  total={intdmsData.length}
+  count={filterAndSortData(intdmsData).length}
+/>
           <TableWrapper>
             <thead className="bg-gray-200 sticky top-0 z-30">
               <tr>
@@ -803,16 +1058,32 @@ export default function Home() {
                   "Status"
                 ].map((header, index) => (
                   <th
-                    key={header}
-                    className={`
-                      p-3 border-b whitespace-nowrap bg-gray-200
-                      ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
-                      ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
-                      ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
-                    `}
-                  >
-                    {header}
-                  </th>
+  key={header}
+  onClick={() => {
+    if (header === "Status") {
+      handleSort("status");
+    }
+  }}
+  className={`
+    p-3 border-b font-semibold whitespace-nowrap bg-gray-200
+    ${
+      header === "Status"
+        ? "cursor-pointer hover:bg-gray-300"
+        : ""
+    }
+    ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
+    ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
+    ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+  `}
+>
+  {header}
+  {header === "Status" &&
+  (sortField === "status"
+    ? sortDirection === "asc"
+      ? " ↑"
+      : " ↓"
+    : " ↕")}
+</th>
                 ))}
               </tr>
             </thead>
@@ -938,29 +1209,78 @@ export default function Home() {
       )}
 
       {/* ================= MODAL ================= */}
-      {showChart && (
-        <ChartModal
-          title={`Grafik ${
-            tab === "readiness"
-              ? "Readiness"
-              : tab === "implementation"
-              ? "Implementation"
-              : tab === "intsfa"
-              ? "Integration SFA"
-              : "Integration DMS"
-          }`}
-          data={
-            tab === "readiness"
-              ? readinessChart
-              : tab === "implementation"
-              ? implementationChart
-              : tab === "intsfa"
-              ? intsfaChart
-              : intdmsChart
-          }
-          onClose={() => setShowChart(false)}
-        />
-      )}
+{showStatusChart && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[999]">
+    <div className="bg-white w-[700px] rounded-2xl p-6">
+      <div className="flex justify-between mb-4">
+        <h2 className="text-xl font-bold">
+          Status Chart
+        </h2>
+
+        <button
+          onClick={() => setShowStatusChart(false)}
+        >
+          <X />
+        </button>
+      </div>
+
+      <div className="h-[450px]">
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie
+  data={statusChartData}
+  dataKey="value"
+  nameKey="name"
+  outerRadius={140}
+  label={({ name, value }) => {
+    const percentage = (
+      ((value as number) / totalDistributor) *
+      100
+    ).toFixed(0);
+
+    return `${name}: ${percentage}%`;
+  }}
+>
+              {statusChartData.map(
+                (_, index) => (
+                  <Cell
+                    key={index}
+                    fill={
+                      PIE_COLORS[
+                        index % PIE_COLORS.length
+                      ]
+                    }
+                  />
+                )
+              )}
+            </Pie>
+
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  </div>
+)}
+
+{showEntityChart && (
+  <ChartModal
+    title="Scoring Per Entity"
+    data={
+      tab === "readiness"
+        ? readinessChart
+        : tab === "implementation"
+        ? implementationChart
+        : tab === "intsfa"
+        ? intsfaChart
+        : intdmsChart
+    }
+    onClose={() =>
+      setShowEntityChart(false)
+    }
+  />
+)}
     </div>
   );
 }
