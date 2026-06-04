@@ -1,20 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
-import { BarChart3, X, Check, XCircle } from "lucide-react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,PieChart,Pie,Cell,Legend,} from "recharts";
+import { X, Check, XCircle } from "lucide-react";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 type TabType = "readiness" | "implementation" | "intsfa" | "intdms";
 
@@ -36,6 +26,9 @@ export default function Home() {
 
   const [showStatusChart, setShowStatusChart] = useState(false);
   const [showEntityChart, setShowEntityChart] = useState(false);
+
+  const tableRef = useRef<HTMLDivElement>(null);
+  const scrollPosition = useRef(0);
 
   
 
@@ -163,19 +156,30 @@ if (search) {
 };
 
 const handleSort = (field: string) => {
+  if (tableRef.current) {
+    scrollPosition.current =
+      tableRef.current.scrollLeft;
+  }
+
   if (sortField !== field) {
-    // klik pertama
     setSortField(field);
     setSortDirection("asc");
   } else if (sortDirection === "asc") {
-    // klik kedua
     setSortDirection("desc");
   } else {
-    // klik ketiga = reset
     setSortField("");
     setSortDirection("asc");
   }
 };
+
+useEffect(() => {
+  requestAnimationFrame(() => {
+    if (tableRef.current) {
+      tableRef.current.scrollLeft =
+        scrollPosition.current;
+    }
+  });
+}, [sortField, sortDirection]);
 
   const groupByEntity = (data: any[]) => {
     return Object.entries(
@@ -294,7 +298,7 @@ const intdmsGrouped = useMemo(() => {
     const totalDistributor = currentData.length;
     const filteredCurrentData = filterAndSortData(currentData);
 
-const countData = filteredCurrentData.length;
+// const countData = filteredCurrentData.length;
 
 const statusChartData = Object.entries(
   currentData.reduce((acc: any, item: any) => {
@@ -382,11 +386,20 @@ const PIE_COLORS = [
   }) => (
     <button
       onClick={() => setTab(value)}
-      className={`px-4 py-2 rounded-lg font-medium transition ${
-        tab === value
-          ? "bg-blue-600 text-white"
-          : "bg-white border"
-      }`}
+      className={`
+  px-3 md:px-4
+  py-2
+  text-sm md:text-base
+  rounded-lg
+  font-medium
+  transition-all
+  duration-200
+  ${
+    tab === value
+      ? "bg-blue-600 text-white shadow-md"
+      : "bg-white border hover:bg-blue-50 hover:border-blue-400 hover:text-blue-600"
+  }
+`}
     >
       {label}
     </button>
@@ -394,16 +407,121 @@ const PIE_COLORS = [
 
   //toolbar search dan filter
 
-  <div className="flex flex-wrap gap-3 mb-5">
+//   <div className="flex flex-wrap gap-3 mb-5">
+//   <input
+//     type="text"
+//     placeholder="Search branch / entity / id..."
+//     value={search}
+//     onChange={(e) => setSearch(e.target.value)}
+//     className="border rounded-lg px-3 py-2 w-72"
+//   />
+// </div>
 
-  <input
-    type="text"
-    placeholder="Search branch / entity / id..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    className="border rounded-lg px-3 py-2 w-72"
-  />
-</div>
+const exportToExcel = () => {
+  let exportData: any[] = [];
+  let sheetName = "";
+
+  if (tab === "readiness") {
+    sheetName = "Readiness";
+
+    exportData = filterAndSortData(readinessData).map((item) => ({
+      Entity: item.entity,
+      ID: item.id_branch,
+      Branch: item.branch_name,
+      "SFA Sales": item.mastersfa_salesman,
+      "SFA Cust": item.mastersfa_cust,
+      "SFA Prod": item.prodsfa,
+      Rute: item.rute,
+      "Dist Sales": item.masterdist_sls,
+      "Dist Cust": item.masterdist_cust,
+      "Dist Prod": item.masterdist_prod,
+      "Map Sales": item.map_sales,
+      "Map Cust": item.map_cust,
+      "Map Prod": item.map_prod,
+      Scoring: `${Math.round(Number(item.scoring))}%`,
+      Status: item.status,
+    }));
+  }
+
+  else if (tab === "implementation") {
+    sheetName = "Implementation";
+
+    exportData = filterAndSortData(implementationData).map((item) => ({
+      Entity: item.entity,
+      ID: item.id_branch,
+      Branch: item.branch_name,
+      Rollout: item.rollout,
+      GoLive: item.golive,
+      "Input Transaksi": item.input_transaksi,
+      "Transaksi Pertama": item.first_trans,
+      "Total Transaksi": item.total_trans,
+      "Total Salesman": item.useraktif,
+      "Salesman Aktif": item.salesman_aktif,
+      "% Salesman": `${Number(item.persen_sales).toFixed(0)}%`,
+      Status: item.status,
+      Scoring: `${Math.round(Number(item.scoring))}%`,
+    }));
+  }
+
+  else if (tab === "intsfa") {
+    sheetName = "SFA Outbound";
+
+    exportData = filterAndSortData(intsfaData).map((item) => ({
+      Entity: item.entity,
+      ID: item.id_branch,
+      Branch: item.branch_name,
+      Activity: item.activity,
+      Status: item.status,
+      "Start Date": item.start_date,
+      "End Date": item.end_date,
+      Scoring: item.scoring,
+    }));
+  }
+
+  else if (tab === "intdms") {
+    sheetName = "SFA Inbound";
+
+    exportData = filterAndSortData(intdmsData).map((item) => ({
+      Entity: item.entity,
+      ID: item.id_branch,
+      Branch: item.branch_name,
+"Config TO": Number(item.configto) === 1 ? "✔" : "✘",
+"Config Stock": Number(item.configstk) === 1 ? "✔" : "✘",
+"Config Invoice": Number(item.configinv) === 1 ? "✔" : "✘",
+"Data Stock": Number(item.datastk) === 1 ? "✔" : "✘",
+"Data Invoice": Number(item.datainv) === 1 ? "✔" : "✘",
+      Scoring: `${Math.round(Number(item.scoring))}%`,
+      Status: item.status,
+    }));
+  }
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    sheetName
+  );
+
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
+
+  const blob = new Blob([excelBuffer], {
+    type:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+
+  saveAs(
+    blob,
+    `SFA-${sheetName}-${today}.xlsx`
+  );
+};
 
   // ================= PAGE HEADER =================
 const PageHeader = ({
@@ -413,54 +531,95 @@ const PageHeader = ({
   total: number;
   count: number;
 }) => (
-  <div className="flex items-center gap-3 mb-4">
-    <p className="text-sm font-medium">
-      Total Distributor: {total}
-    </p>
-
-    <button
-      onClick={() => setShowStatusChart(true)}
-      className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-    >
-      📊 Status Chart
-    </button>
-
-    <button
-      onClick={() => setShowEntityChart(true)}
-      className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-    >
-      📈 Entity Scoring
-    </button>
-
-    {/* Count Data di kanan */}
-    <div className="ml-auto px-3 py-2 bg-gray-100 rounded-lg font-medium">
-      Count Data: {count}
-    </div>
+  <div className="flex flex-col md:flex-row gap-3 mb-4 items-center">
+  <div className="px-3 py-2 bg-gray-100 rounded-lg font-medium text-sm">
+    Total Distributor: {total}
   </div>
+
+  <button
+    onClick={() => setShowStatusChart(true)}
+    className="
+      px-3 py-2
+      bg-emerald-600
+      text-white
+      rounded-lg
+      text-sm
+      font-medium
+      hover:bg-blue-100
+      hover:text-blue-700
+      transition-all
+      duration-200
+    "
+  >
+    📊 Status Chart
+  </button>
+
+  <button
+    onClick={() => setShowEntityChart(true)}
+    className="
+      px-3 py-2
+      bg-emerald-600
+      text-white
+      rounded-lg
+      text-sm
+      font-medium
+      hover:bg-blue-100
+      hover:text-blue-700
+      transition-all
+      duration-200
+    "
+  >
+    📈 Entity Scoring
+  </button>
+
+  <button
+    onClick={exportToExcel}
+    className="
+      px-3 py-2
+      bg-emerald-600
+      text-white
+      rounded-lg
+      text-sm
+      font-medium
+      hover:bg-blue-100
+      hover:text-blue-700
+      transition-all
+      duration-200
+    "
+  >
+    📥 Export Excel
+  </button>
+
+  <div className="md:ml-auto px-3 py-2 bg-gray-100 rounded-lg font-medium text-sm">
+    Count Data: {count}
+  </div>
+</div>
 );
 
   // ================= TABLE WRAPPER =================
-  const TableWrapper = ({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) => (
-    <div className="overflow-auto max-h-[80vh] bg-white rounded-xl shadow">
-      <table className="w-max min-w-full text-sm text-gray-900 border-separate border-spacing-0 relative">
-        {children}
-      </table>
-    </div>
-  );
-
+const TableWrapper = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => (
+  <div
+    ref={tableRef}
+    className="overflow-x-auto overflow-y-auto max-h-[80vh] bg-white rounded-xl shadow"
+  >
+    <table className="w-max min-w-full text-xs md:text-sm text-gray-900 border-separate border-spacing-0 relative">
+      {children}
+    </table>
+  </div>
+);
   return (
-    <div className="min-h-screen bg-gray-100 p-6 text-gray-900">
+    <div className="min-h-screen bg-gray-100 p-3 md:p-6 text-gray-900">
       {/* TITLE */}
-      <h1 className="text-3xl font-bold text-center mb-6">
+      <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
         SFA DASHBOARD
       </h1>
 
       {/* TAB */}
-      <div className="flex justify-end gap-2 mb-5">
+      <div className="flex flex-wrap justify-center md:justify-end gap-2 mb-5">
         <TabButton
           value="readiness"
           label="Readiness"
@@ -485,13 +644,34 @@ const PageHeader = ({
       </div>
         {/* SEARCH & FILTER */}
 <div className="flex flex-wrap gap-3 mb-5">
-  <input
-    type="text"
-    placeholder="Search branch / entity / id..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    className="border rounded-lg px-3 py-2 w-72 bg-white"
-  />
+  <div className="relative w-full md:w-72">
+    <input
+      type="text"
+      placeholder="Search ..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="
+        border rounded-lg px-3 py-2 pr-10
+        w-full
+        bg-white
+      "
+    />
+
+    {search && (
+      <button
+        type="button"
+        onClick={() => setSearch("")}
+        className="
+          absolute right-3 top-1/2
+          -translate-y-1/2
+          text-gray-400
+          hover:text-red-500
+        "
+      >
+        <X size={16} />
+      </button>
+    )}
+  </div>
 </div>
       {/* ================= READINESS ================= */}
       {tab === "readiness" && (
@@ -535,9 +715,9 @@ const PageHeader = ({
         ? "cursor-pointer hover:bg-gray-300"
         : ""
     }
-    ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
-    ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
-    ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+    ${index === 0 ? "md:sticky md:left-0 md:z-40 min-w-[120px]" : ""}
+${index === 1 ? "md:sticky md:left-[120px] md:z-40 min-w-[100px]" : ""}
+${index === 2 ? "md:sticky md:left-[220px] md:z-40 min-w-[250px]" : ""}
   `}
 >
   {header}
@@ -576,7 +756,7 @@ const PageHeader = ({
                             }`}
                           >
                             <td
-                              className={`p-3 text-center sticky left-0 z-20 min-w-[120px] ${
+                              className={`p-3 text-center md:sticky md:left-0 md:z-20 min-w-[120px] ${
                                 Number(item.scoring) < 70
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -586,7 +766,7 @@ const PageHeader = ({
                             </td>
 
                             <td
-                              className={`p-3 text-center sticky left-[120px] z-20 min-w-[100px] ${
+                              className={`p-3 text-center md:sticky md:left-[120px] md:z-20 min-w-[100px] ${
                                 Number(item.scoring) < 70
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -596,7 +776,7 @@ const PageHeader = ({
                             </td>
 
                             <td
-                              className={`p-3 sticky left-[220px] z-20 min-w-[250px] ${
+                              className={`p-3 md:sticky md:left-[220px] md:z-20 min-w-[250px] ${
                                 Number(item.scoring) < 70
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -728,9 +908,9 @@ const PageHeader = ({
         ? "cursor-pointer hover:bg-gray-300"
         : ""
     }
-    ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
-    ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
-    ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+    ${index === 0 ? "md:sticky md:left-0 md:z-40 min-w-[120px]" : ""}
+${index === 1 ? "md:sticky md:left-[120px] md:z-40 min-w-[100px]" : ""}
+${index === 2 ? "md:sticky md:left-[220px] md:z-40 min-w-[250px]" : ""}
   `}
 >
   {header}
@@ -770,7 +950,7 @@ const PageHeader = ({
                             }`}
                           >
                             <td
-                              className={`p-3 text-center sticky left-0 z-20 min-w-[120px] ${
+                              className={`p-3 text-center md:sticky md:left-0 md:z-20 min-w-[120px] ${
                                 item.status === "NOT STARTED"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -780,7 +960,7 @@ const PageHeader = ({
                             </td>
 
                             <td
-                              className={`p-3 text-center sticky left-[120px] z-20 min-w-[100px] ${
+                              className={`p-3 text-center md:sticky md:left-[120px] md:z-20 min-w-[100px] ${
                                 item.status === "NOT STARTED"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -790,7 +970,7 @@ const PageHeader = ({
                             </td>
 
                             <td
-                              className={`p-3 sticky left-[220px] z-20 min-w-[250px] ${
+                              className={`p-3 md:sticky md:left-[220px] md:z-20 min-w-[250px] ${
                                 item.status === "NOT STARTED"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -910,9 +1090,9 @@ const PageHeader = ({
         ? "cursor-pointer hover:bg-gray-300"
         : ""
     }
-    ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
-    ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
-    ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+    ${index === 0 ? "md:sticky md:left-0 md:z-40 min-w-[120px]" : ""}
+${index === 1 ? "md:sticky md:left-[120px] md:z-40 min-w-[100px]" : ""}
+${index === 2 ? "md:sticky md:left-[220px] md:z-40 min-w-[250px]" : ""}
   `}
 >
   {header}
@@ -956,7 +1136,7 @@ const PageHeader = ({
                             }`}
                           >
                             <td
-                              className={`p-3 text-center sticky left-0 z-20 min-w-[120px] ${
+                              className={`p-3 text-center md:sticky md:left-0 md:z-20 min-w-[120px] ${
                                 item.status === "NOT READY"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -966,7 +1146,7 @@ const PageHeader = ({
                             </td>
 
                             <td
-                              className={`p-3 text-center sticky left-[120px] z-20 min-w-[100px] ${
+                              className={`p-3 text-center md:sticky md:left-[120px] md:z-20 min-w-[100px] ${
                                 item.status === "NOT READY"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -976,7 +1156,7 @@ const PageHeader = ({
                             </td>
 
                             <td
-                              className={`p-3 sticky left-[220px] z-20 min-w-[250px] ${
+                              className={`p-3 md:sticky md:left-[220px] md:z-20 min-w-[250px] ${
                                 item.status === "NOT READY"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -1071,9 +1251,9 @@ const PageHeader = ({
         ? "cursor-pointer hover:bg-gray-300"
         : ""
     }
-    ${index === 0 ? "sticky left-0 z-40 min-w-[120px]" : ""}
-    ${index === 1 ? "sticky left-[120px] z-40 min-w-[100px]" : ""}
-    ${index === 2 ? "sticky left-[220px] z-40 min-w-[250px]" : ""}
+    ${index === 0 ? "md:sticky md:left-0 md:z-40 min-w-[120px]" : ""}
+${index === 1 ? "md:sticky md:left-[120px] md:z-40 min-w-[100px]" : ""}
+${index === 2 ? "md:sticky md:left-[220px] md:z-40 min-w-[250px]" : ""}
   `}
 >
   {header}
@@ -1117,7 +1297,7 @@ const PageHeader = ({
                             }`}
                           >
                             <td
-                              className={`p-3 text-center sticky left-0 z-20 min-w-[120px] ${
+                              className={`p-3 text-center md:sticky md:left-0 md:z-20 min-w-[120px] ${
                                 item.status === "NOT READY"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -1127,7 +1307,7 @@ const PageHeader = ({
                             </td>
 
                             <td
-                              className={`p-3 text-center sticky left-[120px] z-20 min-w-[100px] ${
+                              className={`p-3 text-center md:sticky md:left-[120px] md:z-20 min-w-[100px] ${
                                 item.status === "NOT READY"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -1137,7 +1317,7 @@ const PageHeader = ({
                             </td>
 
                             <td
-                              className={`p-3 sticky left-[220px] z-20 min-w-[250px] ${
+                              className={`p-3 md:sticky md:left-[220px] md:z-20 min-w-[250px] ${
                                 item.status === "NOT READY"
                                   ? "bg-red-50"
                                   : "bg-white"
@@ -1211,7 +1391,15 @@ const PageHeader = ({
       {/* ================= MODAL ================= */}
 {showStatusChart && (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[999]">
-    <div className="bg-white w-[700px] rounded-2xl p-6">
+    <div
+  className="
+  bg-white
+  w-[95%]
+  md:w-[700px]
+  rounded-2xl
+  p-4 md:p-6
+  "
+>
       <div className="flex justify-between mb-4">
         <h2 className="text-xl font-bold">
           Status Chart
@@ -1224,7 +1412,7 @@ const PageHeader = ({
         </button>
       </div>
 
-      <div className="h-[450px]">
+      <div className="h-[300px] md:h-[450px]">
         <ResponsiveContainer>
           <PieChart>
             <Pie

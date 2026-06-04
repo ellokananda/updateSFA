@@ -105,5 +105,9 @@ left join (select kodecabang, count(distinct slsno) as sfa_sales from fsalesman 
 left join (select kodecabang, count(distinct slsno) as sls from forder_d1 where month (try_convert(date, tglorder, 103)) = month(GETDATE()) and year(try_convert(date, tglorder, 103)) = year(GETDATE())
     group by kodecabang) d3 
 on ms.kodescabang = d3.kodecabang
-where ms.kodecabang <> 'KOKOLA-MNN' and ms.kodescabang <> '220' and ms.flag_aktif != 'N' 
+where ms.kodecabang <> 'KOKOLA-MNN' and ms.kodescabang <> '220' and ms.flag_aktif != 'N' and MS.KODECABANG <> 'JBR01'
+and not (
+    ms.ket = 'Selaras Bersama'
+    and ms.kodecabang <> 'JBR02'
+)
 order by ms.kodecabang, ms.kodescabang;

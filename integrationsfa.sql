@@ -30,11 +30,15 @@ FROM m_scabang ms
 LEFT JOIN (
     SELECT
         branch,
-        block_id,
-        CAST(created_at AS DATE) AS start_date
+        MAX(CAST(created_at AS DATE)) AS start_date
     FROM interface_exptrx_configs
-    WHERE block_id IN ('Z01')
+    WHERE block_id LIKE 'Z01%'
+    GROUP BY branch
 ) c
-    ON ms.kodescabang = c.branch
-where ms.kodecabang <> 'KOKOLA-MNN' and ms.kodescabang <> '220' and ms.flag_aktif != 'N' 
+ON ms.kodescabang = c.branch
+where ms.kodecabang <> 'KOKOLA-MNN' and ms.kodescabang <> '220' and ms.flag_aktif != 'N' and MS.KODECABANG <> 'JBR01'
+and not (
+    ms.ket = 'Selaras Bersama'
+    and ms.kodecabang <> 'JBR02'
+)
 order by ms.kodecabang,ms.kodescabang,c.start_date;

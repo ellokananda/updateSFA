@@ -204,6 +204,6 @@ and not (
 else 'NOT READY' end as status
 
 from m_scabang m
---where m.kodecabang <> 'KOKOLA-MNN' and m.kodescabang <> '220' and m.flag_aktif != 'N'
-where m.ket = 'Anugerah RB Abadi'
+--where m.kodecabang <> 'KOKOLA-MNN' and m.kodescabang <> '220' and m.flag_aktif != 'N' 
+where m.ket = 'Trio Hutama'
 order by m.kodecabang;

@@ -82,7 +82,7 @@ left join (select distid, count (distinct pcode) as dist_prod from fmaster_dist 
 left join (select distid, count (distinct custno_dist)as map_cust from fcustmst_dist_map group by distid) fmc on ms.kodescabang = fmc.distid
 left join (select kodecabang, count (custno) as rute from frute group by kodecabang) fr on ms.kodescabang = fr.kodecabang
 left join (select distid, count (distinct pcode) as map_prod from fmaster_dist where pcode_prc is not null AND LTRIM(RTRIM(pcode_prc)) <> '' group by distid) fmp on ms.kodescabang = fmp.distid
-where ms.kodecabang <> 'KOKOLA-MNN' and ms.kodescabang <> '220' and ms.flag_aktif != 'N'
+where ms.kodecabang <> 'KOKOLA-MNN' and ms.kodescabang <> '220' and ms.flag_aktif != 'N' 
 order by 
     ms.kodecabang,
     ms.kodescabang;
