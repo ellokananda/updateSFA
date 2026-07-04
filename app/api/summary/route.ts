@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const res = await fetch(
-      "https://job.mnn.biz.id:9080/trx/export?block=INTDMS",
+      "https://job.mnn.biz.id:9080/trx/export?block=SUMM",
       {
         method: "GET",
         headers: {
@@ -17,7 +17,7 @@ export async function GET() {
 
     const data = await res.json();
 
-    console.log("INTDMS RAW:", data);
+    console.log("SUMMARY RAW:", data);
 
     return NextResponse.json({
       data: data?.data || data || [],
@@ -27,7 +27,7 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        message: "Error implementation API",
+        message: "Error readiness API",
         error: err.message,
       },
       { status: 500 }

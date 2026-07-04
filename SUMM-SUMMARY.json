@@ -1,0 +1,117 @@
+{
+    "block_id": "Z01",
+    "block_name": "SUMMARY",
+    "fields": [
+        {
+            "name": "header",
+            "label": "Header",
+            "columns": [
+                {
+                    "column": "total",
+                    "label": "total",
+                    "label_map": "total",
+                    "seq": 1,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "sudah_rollout",
+                    "label": "sudah_rollout",
+                    "label_map": "sudah_rollout",
+                    "seq": 1,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "belum_rollout",
+                    "label": "belum_rollout",
+                    "label_map": "belum_rollout",
+                    "seq": 2,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "rollout_konsisten",
+                    "label": "rollout_konsisten",
+                    "label_map": "rollout_konsisten",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "rollout_belum_konsisten",
+                    "label": "rollout_belum_konsisten",
+                    "label_map": "rollout_belum_konsisten",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "sudah_integrated",
+                    "label": "sudah_integrated",
+                    "label_map": "sudah_integrated",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
+                    "column": "integrated_belum_konsisten",
+                    "label": "integrated_belum_konsisten",
+                    "label_map": "integrated_belum_konsisten",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                }
+            ]
+        }
+    ]
+}

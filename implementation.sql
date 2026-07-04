@@ -23,7 +23,16 @@ SELECT
 	        THEN 'Y'
 	    ELSE 'N'
 	END AS input_transaksi,
-	isnull(format(d.first_trans,'dd-mm-yyyy'),'-') as first_trans,
+	ISNULL(FORMAT(d.first_trans, 'dd-MM-yyyy'), '-') AS first_trans,
+ISNULL(FORMAT(d.last_trans, 'dd-MM-yyyy'), '-') AS last_trans,
+
+CASE
+    WHEN d.last_trans >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
+         AND d.last_trans <= CAST(GETDATE() AS DATE)
+    THEN 'Y'
+    ELSE 'N'
+END AS cek,
+
 	isnull (d2.total_trans,0) as total_trans,
 	ISNULL(fs.sfa_sales, 0) AS useraktif,
 	isnull (d3.sls,0) as salesman_aktif,
@@ -97,7 +106,15 @@ SELECT
 		    END
 		) AS scoring
 FROM m_scabang ms
-left join (select kodecabang,min(try_convert(date, tglorder, 103)) as first_trans from forder_d1 group by kodecabang) d on ms.kodescabang = d.kodecabang
+left join (
+    select 
+        kodecabang,
+        MIN(TRY_CONVERT(date, tglorder, 103)) as first_trans,
+        MAX(TRY_CONVERT(date, tglorder, 103)) as last_trans
+    from forder_d1
+    group by kodecabang
+) d
+    on ms.kodescabang = d.kodecabang
 left join (select fd.kodecabang, COUNT(fd.orderno) AS total_trans FROM forder_d1 fd
 	left join forder_h fh on fh.slsno = fd.slsno and fh.custno = fd.custno and fh.orderno = fd.orderno and fh.tglorder = fd.tglorder where isnull (fh.flag_noo,'N') != 'Y' group by fd.kodecabang) d2 
 	 on ms.kodescabang = d2.kodecabang
