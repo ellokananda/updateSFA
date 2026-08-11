@@ -23,6 +23,7 @@ case when
         and cast(fd.updatedate as date) >= dateadd(day,-7,cast(getdate() as date))
     )
 then 1 else 0 end as datastk,
+'' as detail,
 
 case when exists (
 	select 1 from sap_web_inv_sfa inv where inv.kodecabang = m.kodescabang and cast(inv.invoice_date as date) >= dateadd(day,-7,cast(getdate() as date)))

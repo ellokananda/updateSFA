@@ -23,6 +23,15 @@ end as scoring
 
 from m_scabang as ms
 left join (select branch, max(cast(created_at as DATE)) as start_date from interface_exptrx_configs where block_id like 'Z01%' group by branch) c on ms.kodescabang = c.branch 
-left join (select distinct kodecabang as branch from forder_h where FLAG_INPUT = 'Y' AND CONVERT(date, tglorder, 103) = CAST(GETDATE() - 1 AS date)) f on ms.kodescabang = f.branch
+left join (select distinct kodecabang as branch from forder_h where FLAG_INPUT = 'Y' 
+--AND CONVERT(date, tglorder, 103) = CAST(GETDATE() - 1 AS date)
+AND CONVERT(date, tglorder, 103) =
+    CASE
+        WHEN DATEPART(WEEKDAY, GETDATE()) = 2
+            THEN DATEADD(DAY, -2, CAST(GETDATE() AS date)) -- Senin -> Sabtu
+        ELSE
+            DATEADD(DAY, -1, CAST(GETDATE() AS date)) -- Hari lain -> H-1
+    END
+) f on ms.kodescabang = f.branch
 where ms.kodecabang <> 'KOKOLA-MNN' and ms.flag_aktif != 'N'
 order by ms.kodecabang, ms.kodescabang, c.start_date;

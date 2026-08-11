@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,PieChart,Pie,Cell,Legend,} from "recharts";
-import { X, Check, XCircle, Info } from "lucide-react";
+import { X, Check, XCircle, Info, Eye } from "lucide-react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -25,6 +25,11 @@ export default function Home() {
   const [intdmsData, setIntdmsData] = useState<any[]>([]);
     const [summaryData, setSummaryData] = useState<any[]>([]);
 
+    const [convStockData, setConvStockData] = useState<any[]>([]);
+const [popupData, setPopupData] = useState<any[]>([]);
+const [showStockPopup, setShowStockPopup] = useState(false);
+const [popupBranchName, setPopupBranchName] = useState("");
+
   const [showStatusChart, setShowStatusChart] = useState(false);
   const [showEntityChart, setShowEntityChart] = useState(false);
 
@@ -41,26 +46,35 @@ export default function Home() {
       try {
         setLoading(true);
 
-        const [readinessRes, implementationRes, intsfaRes, intdmsRes, summaryRes] =
-          await Promise.all([
-            fetch("/api/readiness"),
-            fetch("/api/implementation"),
-            fetch("/api/integrationsfa"),
-            fetch("/api/integrationdms"),
-            fetch("/api/summary")
-          ]);
+        const [
+  readinessRes,
+  implementationRes,
+  intsfaRes,
+  intdmsRes,
+  summaryRes,
+  convStockRes
+] = await Promise.all([
+  fetch("/api/readiness"),
+  fetch("/api/implementation"),
+  fetch("/api/integrationsfa"),
+  fetch("/api/integrationdms"),
+  fetch("/api/summary"),
+  fetch("/api/convstock")
+]);
 
         const readinessJson = await readinessRes.json();
         const implementationJson = await implementationRes.json();
         const intsfaJson = await intsfaRes.json();
         const intdmsJson = await intdmsRes.json();
         const summaryJson = await summaryRes.json();
+        const convStockJson = await convStockRes.json();
 
         setReadinessData(readinessJson.data || []);
         setImplementationData(implementationJson.data || []);
         setIntsfaData(intsfaJson.data || []);
         setIntdmsData(intdmsJson.data || []);
         setSummaryData(summaryJson.data || []);
+       setConvStockData(convStockJson.data || []);
       } catch (error) {
         console.error("ERROR FETCH API:", error);
       } finally {
@@ -108,6 +122,17 @@ export default function Home() {
       />
     </div>
   );
+};
+
+const handleDetail = (branch: string, branchName: string) => {
+  const result = convStockData.filter(
+    (item: any) =>
+      String(item.kodecabang) === String(branch)
+  );
+
+  setPopupBranchName(branchName);
+  setPopupData(result);
+  setShowStockPopup(true);
 };
 
 const filterAndSortData = (data: any[]) => {
@@ -382,6 +407,7 @@ const implementationColumnInfo: Record<string, string> = {
   "GoLive": "Tanggal GoLive",
   "Input Transaksi": "Apakah Distributor sudah melakukan inputan taking order",
   "Transaksi Pertama": "Tanggal pertama kali adanya inputan taking order",
+  "Transaksi Terakhir": "Tanggal terakhir adanya inputan taking order",
   "Total Transaksi": "Jumlah keseluruhan transaksi",
   "Total Salesman": "Total Salesman",
   "Salesman Aktif": "Salesman yang aktif selama bulan berjalan",
@@ -417,12 +443,22 @@ const intdmsColumnInfo: Record<string, string> = {
   "Data Stok": "Data Stok dalam 7 hari kebelakang",
   "Data Invoice": "Data Sales Invoice dalam 7 hari kebelakang",
   "Stock Last Date": "Tanggal Terakhir Supply Data Stok",
-  "Invoice Last Date ": "Tanggal Terakhir Supply Data Sales Invoice",
+  "Invoice Last Date": "Tanggal Terakhir Supply Data Sales Invoice",
   Status: `DONE : Konfigurasi, data stok, dan data sales invoice telah terkirim secara rutin selama 7 hari terakhir
   PROGRESS : Konfigurasi telah lengkap, namun pengiriman data stok dan/atau data sales invoice belum terpenuhi sepenuhnya
   READY : Konfigurasi Taking Order, Stok, dan Sales Invoice telah lengkap dan siap untuk proses integrasi
   NOT READY : Konfigurasi Taking Order, Stok, dan/atau Sales Invoice belum lengkap`,
   Scoring: "Persentase kesiapan"
+};
+
+const summaryColumnInfo: Record<string, string> = {
+  "ALL DISTRI": "Total Distributor",
+  "SUDAH ROLLOUT": "Total Distributor sudah training dan ada transaksi",
+  "BELUM ROLLOUT": "Total Distributor belum/sudah training dan tidak ada transaksi",
+  "ROLLOUT KONSISTEN": "Total Distributor yang konsisten input transaksi di H-1",
+  "ROLLOUT BELUM KONSISTEN": "Total Distributor yang tidak konsisten input transaksi di H-1",
+  "SUDAH INTEGRATED": "Taking Order terkirim, Stock dan Sales Invoice tersimpan di Database",
+  "INTEGRATED BELUM KONSISTEN": "Pengiriman Taking Order, Stock, atau Sales Invoice belum konsisten",
 };
 
 const statusInfo = {
@@ -588,6 +624,31 @@ summary: [],
 //   />
 // </div>
 
+const safeNumber = (value: any) => {
+  const num = parseFloat(value);
+  return Number.isFinite(num) ? num : 0;
+};
+
+const totalUom1 = popupData.reduce(
+  (total, item) => total + safeNumber(item.stock_uom1),
+  0
+);
+
+const totalUom2 = popupData.reduce(
+  (total, item) => total + safeNumber(item.stock_uom2),
+  0
+);
+
+const totalUom3 = popupData.reduce(
+  (total, item) => total + safeNumber(item.stock_uom3),
+  0
+);
+
+const totalPcs = popupData.reduce(
+  (total, item) => total + safeNumber(item.pcs),
+  0
+);
+
 const exportToExcel = () => {
   let exportData: any[] = [];
   let sheetName = "";
@@ -626,6 +687,7 @@ const exportToExcel = () => {
       GoLive: item.golive,
       "Input Transaksi": item.input_transaksi,
       "Transaksi Pertama": item.first_trans,
+      "Transaksi Terakhir": item.last_trans,
       "Total Transaksi": item.total_trans,
       "Total Salesman": item.useraktif,
       "Salesman Aktif": item.salesman_aktif,
@@ -697,6 +759,47 @@ const exportToExcel = () => {
   );
 };
 
+const exportStockExcel = () => {
+  const exportData = popupData.map((row: any, index: number) => ({
+    No: index + 1,
+    "Product Code": row.product_code,
+    "Product Name": row.product_name,
+    "UOM 1": row.stock_uom1 ?? "-",
+    "UOM 2": row.stock_uom2 ?? "-",
+    "UOM 3": row.stock_uom3 ?? "-",
+    "PCS": row.pcs ?? "-",
+    "Update Date": row.updatedate ?? "-",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    "Stock"
+  );
+
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
+
+  const blob = new Blob([excelBuffer], {
+    type:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+
+const fileName = `Report Stock ${popupBranchName} ${today}.xlsx`;
+
+saveAs(blob, fileName);
+};
+
+
+
   // ================= PAGE HEADER =================
 const PageHeader = ({
   total,
@@ -706,81 +809,47 @@ const PageHeader = ({
   count: number;
 }) => (
   <div className="flex flex-col md:flex-row gap-3 mb-4 items-center">
-  <div className="px-3 py-2 bg-gray-100 rounded-lg font-medium text-sm">
-    Total Distributor: {total}
-  </div>
 
-  {tab === "readiness" && (
-  <>
-    <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium text-sm">
-      Total Distri Rollout dan GoLive: {totalRollout}
+  {tab !== "summary" && (
+    <>
+      <div className="px-3 py-2 bg-gray-100 rounded-lg font-medium text-sm">
+        Total Distributor: {total}
+      </div>
+
+      {tab === "readiness" && (
+        <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium text-sm">
+          Total Distri Rollout dan GoLive: {totalRollout}
+        </div>
+      )}
+
+      <button
+        onClick={() => setShowStatusChart(true)}
+        className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium"
+      >
+        📊 Status Chart
+      </button>
+
+      <button
+        onClick={() => setShowEntityChart(true)}
+        className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium"
+      >
+        📈 Entity Scoring
+      </button>
+
+      <button
+        onClick={exportToExcel}
+        className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium"
+      >
+        📥 Export Excel
+      </button>
+    </>
+  )}
+
+  {search.trim() !== "" && tab !== "summary" && (
+    <div className="md:ml-auto px-3 py-2 bg-gray-100 rounded-lg font-medium text-sm">
+      Count Data: {count}
     </div>
-
-    {/* <div className="px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium text-sm">
-      Go Live: {totalGoLive}
-    </div> */}
-  </>
-)}
-
-  <button
-    onClick={() => setShowStatusChart(true)}
-    className="
-      px-3 py-2
-      bg-emerald-600
-      text-white
-      rounded-lg
-      text-sm
-      font-medium
-      hover:bg-blue-100
-      hover:text-blue-700
-      transition-all
-      duration-200
-    "
-  >
-    📊 Status Chart
-  </button>
-
-  <button
-    onClick={() => setShowEntityChart(true)}
-    className="
-      px-3 py-2
-      bg-emerald-600
-      text-white
-      rounded-lg
-      text-sm
-      font-medium
-      hover:bg-blue-100
-      hover:text-blue-700
-      transition-all
-      duration-200
-    "
-  >
-    📈 Entity Scoring
-  </button>
-
-  <button
-    onClick={exportToExcel}
-    className="
-      px-3 py-2
-      bg-emerald-600
-      text-white
-      rounded-lg
-      text-sm
-      font-medium
-      hover:bg-blue-100
-      hover:text-blue-700
-      transition-all
-      duration-200
-    "
-  >
-    📥 Export Excel
-  </button>
-
-{search.trim() !== "" && (
-  <div className="md:ml-auto px-3 py-2 bg-gray-100 rounded-lg font-medium text-sm">
-    Count Data: {count}
-  </div>
-)}
+  )}
 </div>
 );
 
@@ -902,36 +971,30 @@ const HeaderTooltip = ({
         />
       </div>
         {/* SEARCH & FILTER */}
-<div className="flex flex-wrap gap-3 mb-5">
-  <div className="relative w-full md:w-72">
-    <input
-      type="text"
-      placeholder="Search ..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      className="
-        border rounded-lg px-3 py-2 pr-10
-        w-full
-        bg-white
-      "
-    />
+{/* SEARCH */}
+{tab !== "summary" && (
+  <div className="flex flex-wrap gap-3 mb-5">
+    <div className="relative w-full md:w-72">
+      <input
+        type="text"
+        placeholder="Search ..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="border rounded-lg px-3 py-2 pr-10 w-full bg-white"
+      />
 
-    {search && (
-      <button
-        type="button"
-        onClick={() => setSearch("")}
-        className="
-          absolute right-3 top-1/2
-          -translate-y-1/2
-          text-gray-400
-          hover:text-red-500
-        "
-      >
-        <X size={16} />
-      </button>
-    )}
+      {search && (
+        <button
+          type="button"
+          onClick={() => setSearch("")}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+        >
+          <X size={16} />
+        </button>
+      )}
+    </div>
   </div>
-</div>
+)}
       {/* ================= READINESS ================= */}
       {tab === "readiness" && (
         <>
@@ -1157,6 +1220,7 @@ const HeaderTooltip = ({
                   "GoLive",
                   "Input Transaksi",
                   "Transaksi Pertama",
+                  "Transaksi Terakhir",
                   "Total Transaksi",
                   "Total Salesman",
                   "Salesman Aktif",
@@ -1285,6 +1349,10 @@ const HeaderTooltip = ({
                             </td>
 
                             <td className="p-3 text-center">
+                              {item.last_trans}
+                            </td>
+
+                            <td className="p-3 text-center">
                               {item.total_trans}
                             </td>
 
@@ -1325,7 +1393,7 @@ const HeaderTooltip = ({
 
                       <tr className="bg-blue-100 font-bold">
                         <td
-                          colSpan={12}
+                          colSpan={13}
                           className="p-3 text-center"
                         >
                           RATA-RATA SCORING {entity}
@@ -1659,10 +1727,20 @@ const HeaderTooltip = ({
                               {renderIcon(item.configinv)}
                             </td>
 
-                            <td className="p-3 text-center">
-                              {renderIcon(item.datastk)}
-                            </td>
-
+<td className="p-3 text-center">
+  <button
+    onClick={() =>
+      handleDetail(
+        item.id_branch,
+        item.branch_name
+      )
+    }
+    title="Lihat Report Stock"
+    className="cursor-pointer hover:scale-110 transition-transform"
+  >
+    {renderIcon(item.datastk)}
+  </button>
+</td>
                             <td className="p-3 text-center">
                               {renderIcon(item.datainv)}
                             </td>
@@ -1723,25 +1801,28 @@ const HeaderTooltip = ({
 
     <TableWrapper>
       <thead className="bg-gray-200 sticky top-0 z-30">
-        <tr>
-          {[
-            "ALL DISTRI",
-            "SUDAH ROLLOUT",
-            "BELUM ROLLOUT",
-            "ROLLOUT KONSISTEN",
-            "ROLLOUT BELUM KONSISTEN",
-            "SUDAH INTEGRATED",
-            "INTEGRATED BELUM KONSISTEN",
-          ].map((header) => (
-            <th
-              key={header}
-              className="p-3 border-b font-semibold whitespace-nowrap bg-gray-200 text-center"
-            >
-              {header}
-            </th>
-          ))}
-        </tr>
-      </thead>
+  <tr>
+    {[
+      "ALL DISTRI",
+      "SUDAH ROLLOUT",
+      "BELUM ROLLOUT",
+      "ROLLOUT KONSISTEN",
+      "ROLLOUT BELUM KONSISTEN",
+      "SUDAH INTEGRATED",
+      "INTEGRATED BELUM KONSISTEN",
+    ].map((header) => (
+      <th
+        key={header}
+        className="p-3 border-b font-semibold whitespace-nowrap bg-gray-200"
+      >
+        <HeaderTooltip
+  title={header}
+  description={summaryColumnInfo[header] || "Tidak ada keterangan"}
+/>
+      </th>
+    ))}
+  </tr>
+</thead>
 
       <tbody>
         {filterAndSortData(summaryData).map((item: any, index: number) => (
@@ -1895,6 +1976,151 @@ const HeaderTooltip = ({
     </div>
   </div>
 )}
+
+{showStockPopup && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
+    <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-xl bg-white shadow-2xl">
+
+      {/* HEADER */}
+      <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
+        <h2 className="text-lg font-bold text-gray-800">
+          Detail Stock {popupBranchName}
+        </h2>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={exportStockExcel}
+            className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+          >
+            📊 Export Excel
+          </button>
+
+          <button
+            onClick={() => setShowStockPopup(false)}
+            className="text-2xl leading-none text-red-500 hover:text-red-700"
+            title="Tutup"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      {/* TABLE AREA */}
+      <div className="p-5">
+        <div className="overflow-auto rounded-lg border border-gray-300 max-h-[70vh]">
+
+          <table className="w-full border-collapse text-sm">
+            <thead className="sticky top-0 z-10 bg-gray-100">
+              <tr>
+                <th className="w-[60px] border-b border-r border-gray-300 px-3 py-3 text-center font-bold">
+                  No
+                </th>
+
+                <th className="w-[210px] border-b border-r border-gray-300 px-3 py-3 text-center font-bold">
+                  Product Code
+                </th>
+
+                <th className="min-w-[380px] border-b border-r border-gray-300 px-3 py-3 text-left font-bold">
+                  Product Name
+                </th>
+
+                <th className="w-[120px] border-b border-r border-gray-300 px-3 py-3 text-center font-bold">
+                  UOM 1
+                </th>
+
+                <th className="w-[120px] border-b border-r border-gray-300 px-3 py-3 text-center font-bold">
+                  UOM 2
+                </th>
+
+                <th className="w-[120px] border-b border-r border-gray-300 px-3 py-3 text-center font-bold">
+                  UOM 3
+                </th>
+
+                <th className="w-[120px] border-b border-r border-gray-300 px-3 py-3 text-center font-bold">
+                  PCS
+                </th>
+
+                <th className="w-[160px] border-b border-gray-300 px-3 py-3 text-center font-bold">
+                  Update Date
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {popupData.map((item: any, index: number) => (
+                <tr
+                  key={index}
+                  className="hover:bg-gray-50"
+                >
+                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center">
+                    {index + 1}
+                  </td>
+
+                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+                    {item.product_code}
+                  </td>
+
+                  <td className="border-b border-r border-gray-200 px-3 py-3">
+                    {item.product_name}
+                  </td>
+
+                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+                    {item.stock_uom1 ?? "-"} {item.unit1 ?? ""}
+                  </td>
+
+                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+                    {item.stock_uom2 ?? "-"} {item.unit2 ?? ""}
+                  </td>
+
+                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+                    {item.stock_uom3 == null
+                      ? "-"
+                      : `${item.stock_uom3} ${item.unit3 ?? ""}`}
+                  </td>
+                  <td className="border-b border-r border-gray-200 px-3 py-3">
+                    {item.pcs}
+                  </td>
+
+                  <td className="border-b border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+                    {item.updatedate
+                      ? item.updatedate
+                      : "-"}
+                  </td>
+                </tr>
+              ))}
+                {/* TOTAL */}
+   <tr className="bg-blue-100 font-bold">
+    <td colSpan={3} className="border-b border-r border-gray-300 px-3 py-3 text-center">
+      TOTAL
+    </td>
+
+    <td className="border-b border-r border-gray-300 px-3 py-3 text-center">
+      {totalUom1}
+    </td>
+
+    <td className="border-b border-r border-gray-300 px-3 py-3 text-center">
+      {totalUom2}
+    </td>
+
+    <td className="border-b border-r border-gray-300 px-3 py-3 text-center">
+      {totalUom3}
+    </td>
+
+    <td className="border-b border-r border-gray-300 px-3 py-3 text-center">
+      {totalPcs}
+    </td>
+
+    <td className="border-b border-gray-300 px-3 py-3"></td>
+  </tr>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

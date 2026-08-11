@@ -2,7 +2,8 @@ SELECT
     ms.kodecabang AS entity,
     ms.kodescabang AS id_branch,
     ms.ket AS branch_name,
-    ISNULL(fs.sfa_sales, 0) AS mastersfa_salesman,
+--    ISNULL(fs.sfa_sales, 0) AS mastersfa_salesman,
+    ISNULL(fs.sales_info, '-') AS mastersfa_salesman,
     ISNULL(fc.sfa_cust, 0) AS mastersfa_cust,
     prodsfa='91',
     isnull(fr.rute,0) as rute,
@@ -74,7 +75,22 @@ END AS status,
 case when gl.golive = 'Y' then 'Y' else 'N' end as rollout,
 case when gl.golive = 'Y' then 'Y' else 'N' end as golive
 FROM m_scabang ms
-left join (SELECT kodecabang, COUNT(DISTINCT slsno) AS sfa_sales FROM fsalesman WHERE caraopr <> 'SUPERVISOR' and team <> 'SPV01' GROUP BY kodecabang) fs ON ms.kodescabang = fs.kodecabang
+--left join (SELECT kodecabang, COUNT(DISTINCT slsno) AS sfa_sales FROM fsalesman WHERE caraopr <> 'SUPERVISOR' and team <> 'SPV01' GROUP BY kodecabang) fs ON ms.kodescabang = fs.kodecabang
+LEFT JOIN (
+    SELECT
+        kodecabang,
+        COUNT(DISTINCT slsno) AS sfa_sales,
+        CONCAT(
+            SUM(CASE WHEN team = 'EXC01' THEN 1 ELSE 0 END),
+            ' EXC / ',
+            SUM(CASE WHEN team = 'MIX01' THEN 1 ELSE 0 END),
+            ' MIX'
+        ) AS sales_info
+    FROM fsalesman
+    WHERE caraopr <> 'SUPERVISOR'
+      AND team <> 'SPV01'
+    GROUP BY kodecabang
+) fs ON ms.kodescabang = fs.kodecabang
 left join (SELECT kodecabang, COUNT(DISTINCT custno) AS sfa_cust FROM fcustmst where custno not in ('153401','153402','153403','369101','369102','369103','384401','384402','384403','1552101','1552102','1552103',
 '1810000','1810000D','1810000DF')
 GROUP BY kodecabang) fc ON ms.kodescabang = fc.kodecabang

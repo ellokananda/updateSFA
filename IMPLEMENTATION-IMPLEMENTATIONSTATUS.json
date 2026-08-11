@@ -112,6 +112,21 @@
                     }
                 },
                 {
+                    "column": "last_trans",
+                    "label": "last_trans",
+                    "label_map": "last_trans",
+                    "seq": 3,
+                    "attribute": {
+                        "mandatory": true,
+                        "mandatory_value": "EMPTY",
+                        "data_type": "string",
+                        "format_date": "",
+                        "round_fraction": "",
+                        "digit_grouping": "",
+                        "decimal_grouping": ""
+                    }
+                },
+                {
                     "column": "total_trans",
                     "label": "total_trans",
                     "label_map": "total_trans",

@@ -25,13 +25,13 @@ SELECT
 	END AS input_transaksi,
 	ISNULL(FORMAT(d.first_trans, 'dd-MM-yyyy'), '-') AS first_trans,
 ISNULL(FORMAT(d.last_trans, 'dd-MM-yyyy'), '-') AS last_trans,
-
-CASE
-    WHEN d.last_trans >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
-         AND d.last_trans <= CAST(GETDATE() AS DATE)
-    THEN 'Y'
-    ELSE 'N'
-END AS cek,
+--
+--CASE
+--    WHEN d.last_trans >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
+--         AND d.last_trans <= CAST(GETDATE() AS DATE)
+--    THEN 'Y'
+--    ELSE 'N'
+--END AS cek,
 
 	isnull (d2.total_trans,0) as total_trans,
 	ISNULL(fs.sfa_sales, 0) AS useraktif,
