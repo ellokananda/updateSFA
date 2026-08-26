@@ -2045,54 +2045,69 @@ const HeaderTooltip = ({
                 </th>
               </tr>
             </thead>
+<tbody>
+  {popupData.length === 0 ? (
+    <tr>
+      <td
+        colSpan={8}
+        className="border-b border-gray-200 px-3 py-5 text-center text-gray-500"
+      >
+        Tidak ada data stock
+      </td>
+    </tr>
+  ) : (
+    popupData.map((item: any, index: number) => (
+      <tr
+        key={index}
+        className="hover:bg-gray-50"
+      >
+        <td className="border-b border-r border-gray-200 px-3 py-3 text-center">
+          {index + 1}
+        </td>
 
-            <tbody>
-              {popupData.map((item: any, index: number) => (
-                <tr
-                  key={index}
-                  className="hover:bg-gray-50"
-                >
-                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center">
-                    {index + 1}
-                  </td>
+        <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+          {item.product_code}
+        </td>
 
-                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
-                    {item.product_code}
-                  </td>
+        <td className="border-b border-r border-gray-200 px-3 py-3">
+          {item.product_name}
+        </td>
 
-                  <td className="border-b border-r border-gray-200 px-3 py-3">
-                    {item.product_name}
-                  </td>
+        <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+          {item.stock_uom1 ?? "-"} {item.unit1 ?? ""}
+        </td>
 
-                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
-                    {item.stock_uom1 ?? "-"} {item.unit1 ?? ""}
-                  </td>
+        <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+          {item.stock_uom2 ?? "-"} {item.unit2 ?? ""}
+        </td>
 
-                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
-                    {item.stock_uom2 ?? "-"} {item.unit2 ?? ""}
-                  </td>
+        <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+          {item.stock_uom3 == null
+            ? "-"
+            : `${item.stock_uom3} ${item.unit3 ?? ""}`}
+        </td>
 
-                  <td className="border-b border-r border-gray-200 px-3 py-3 text-center whitespace-nowrap">
-                    {item.stock_uom3 == null
-                      ? "-"
-                      : `${item.stock_uom3} ${item.unit3 ?? ""}`}
-                  </td>
-                  <td className="border-b border-r border-gray-200 px-3 py-3">
-                    {item.pcs}
-                  </td>
+        <td className="border-b border-r border-gray-200 px-3 py-3 text-center">
+          {item.pcs}
+        </td>
 
-                  <td className="border-b border-gray-200 px-3 py-3 text-center whitespace-nowrap">
-                    {item.updatedate
-                      ? item.updatedate
-                      : "-"}
-                  </td>
-                </tr>
-              ))}
-                {/* TOTAL */}
-   <tr className="bg-blue-100 font-bold">
-    <td colSpan={3} className="border-b border-r border-gray-300 px-3 py-3 text-center">
-      TOTAL
-    </td>
+        <td className="border-b border-gray-200 px-3 py-3 text-center whitespace-nowrap">
+          {item.updatedate
+            ? item.updatedate
+            : "-"}
+        </td>
+      </tr>
+    ))
+  )}
+
+  {/* TOTAL - JANGAN DIHAPUS */}
+  <tr className="sticky bottom-0 z-10 bg-blue-100 font-bold">
+  <td
+    colSpan={3}
+    className="border-b border-r border-gray-300 px-3 py-3 text-center"
+  >
+    TOTAL
+  </td>
 
     <td className="border-b border-r border-gray-300 px-3 py-3 text-center">
       {totalUom1}
@@ -2112,7 +2127,7 @@ const HeaderTooltip = ({
 
     <td className="border-b border-gray-300 px-3 py-3"></td>
   </tr>
-            </tbody>
+</tbody>
           </table>
 
         </div>
